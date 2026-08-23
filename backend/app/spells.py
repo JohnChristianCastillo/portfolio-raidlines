@@ -1,8 +1,11 @@
 """The tracked-spell catalog: what Raidline is allowed to draw on a timeline.
 
-The file to edit when a season changes. Nothing else knows which spells exist:
-adding one here makes it a toggle in the UI and fetches it from Warcraft Logs,
-removing it drops it from both. Group order is toggle-row order.
+Adding a spell here makes it a toggle in the UI, removing it drops it. Group order
+is toggle-row order.
+
+Only the hand-curated groups live here. Potions and trinkets are discovered per
+board from what the ranked players actually used, so they stay empty and need no
+attention when a season turns over.
 
 Fields per spell:
   id     in-game spell ID, from the wowhead URL /spell=185313/shadow-dance. What the
@@ -90,24 +93,16 @@ SUBTLETY_ROGUE = [
         key="potions",
         label="Potions",
         color="#3fb950",
-        spells=[
-            Spell(
-                1236994,
-                "Potion of Recklessness",
-                "POR",
-                "inv_12_profession_alchemy_voidpotion_red",
-                on_by_default=True,
-            ),
-            # TODO: other offensive potions of the active season.
-        ],
+        # Discovered from the logs, not listed here: whatever the ranked players
+        # actually drank. See POTION_ICON_HINTS in services/timeline.py.
+        spells=[],
     ),
     SpellGroup(
         key="trinkets",
         label="Trinkets",
         color="#e3a008",
-        spells=[
-            # TODO: on-use trinkets worth watching this season.
-        ],
+        # Discovered from the logs too, via gear slots 12 and 13.
+        spells=[],
     ),
 ]
 

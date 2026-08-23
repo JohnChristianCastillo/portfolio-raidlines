@@ -13,10 +13,14 @@ same 2 points as an unfiltered one, so filtering server-side only lost informati
 trinkets are found from what players actually cast, and editing the catalog does not
 invalidate a single cached fight.
 
-The trinket group is built per board rather than hand-maintained. Gear slots 12 and
-13 of each ranking are the equipped trinkets; a cast whose icon or name matches one
-of them is a trinket use. That keeps the toggles to what these ten players brought
-to this boss, which is the only trinket list worth showing.
+Trinkets and potions are both discovered per board rather than hand-maintained, so
+neither needs touching when a season turns over. Trinkets come from gear slots 12
+and 13 of each ranking, matched against casts by icon or name. Potions are matched
+on the alchemy and potion icon families plus the obvious names.
+
+Order matters in that classification: Freightrunner's Flask is a trinket whose icon
+is an alchemy flask, so the gear match has to be tried before the potion heuristic
+or it lands in the wrong group.
 
 Trinkets are labelled and toggled by the ITEM, never by the ability. One trinket can
 fire under several names (Light Company Guidon casts "Charge!"), so keying off the
@@ -47,8 +51,21 @@ FETCH_CONCURRENCY = 4
 # Gear array positions of the two trinkets. Fixed by the game's slot order.
 TRINKET_SLOTS = (12, 13)
 
-# The catalog group that discovered trinkets are attached to.
+# Catalog groups filled in from the logs rather than from spells.py.
 TRINKET_GROUP = "trinkets"
+POTION_GROUP = "potions"
+
+# What a consumable looks like. Both lists were read off the icons and names that
+# actually appear in ranked parses, not guessed.
+POTION_ICON_HINTS = ("alchemy", "potion")
+POTION_NAME_HINTS = (
+    "potion",
+    "flask",
+    "elixir",
+    "phial",
+    "healthstone",
+    "draught",
+)
 
 
 class UnknownSpec(ValueError):
@@ -91,7 +108,8 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
     )
 
     kept: list[dict] = []
-    trinkets: dict[int, dict] = {}
+    # group key -> toggle id -> the toggle entry, merged across all ten players.
+    discovered: dict[str, dict[int, dict]] = {TRINKET_GROUP: {}, POTION_GROUP: {}}
     for entry, result in zip(rankings, results):
         if isinstance(result, Exception):
             # One unreadable log should cost that row, not the whole page. Private and
@@ -102,8 +120,9 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
             continue
         player, found = result
         kept.append(player)
-        for spell_id, spell in found.items():
-            trinkets.setdefault(spell_id, spell)
+        for group_key, entries in found.items():
+            for toggle, spell in entries.items():
+                discovered[group_key].setdefault(toggle, spell)
 
     # The ruler has to span the longest pull, otherwise the slowest kill runs off it.
     max_duration = max((p["duration"] for p in kept), default=0.0)
@@ -116,13 +135,13 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
         "spec": {"key": spec_key, "label": SPEC_LABELS.get(spec_key, spec_key)},
         "maxDuration": max_duration,
         "players": kept,
-        # The catalog groups, with the trinket group filled in from this board.
-        "groups": _groups(spec_key, trinkets),
+        # The catalog groups, with the discovered ones filled in from this board.
+        "groups": _groups(spec_key, discovered),
         "warnings": warnings,
     }
 
 
-def _groups(spec_key: str, trinkets: dict[int, dict]) -> list[dict]:
+def _groups(spec_key: str, discovered: dict[str, dict[int, dict]]) -> list[dict]:
     out = []
     for group in groups_for(spec_key):
         spells = [
@@ -135,9 +154,10 @@ def _groups(spec_key: str, trinkets: dict[int, dict]) -> list[dict]:
             }
             for s in group.spells
         ]
-        if group.key == TRINKET_GROUP:
+        found = discovered.get(group.key)
+        if found:
             spells.extend(
-                sorted(trinkets.values(), key=lambda s: s["name"] or str(s["id"]))
+                sorted(found.values(), key=lambda s: s["name"] or str(s["id"]))
             )
         out.append(
             {
@@ -211,7 +231,7 @@ async def _player(
     catalog: dict,
     spec_key: str,
     semaphore: asyncio.Semaphore,
-) -> tuple[dict, dict[int, dict]]:
+) -> tuple[dict, dict[str, dict[int, dict]]]:
     report = entry.get("report") or {}
     code = report.get("code")
     fight_id = report.get("fightID")
@@ -252,7 +272,7 @@ async def _player(
         "reportUrl": _report_url(code, int(fight_id), fight["actor_id"]),
         "casts": fight["casts"],
     }
-    return player, fight["trinket_spells"]
+    return player, fight["discovered"]
 
 
 async def _fight(
@@ -293,7 +313,7 @@ async def _fight(
 
     events = ((report.get("events") or {}).get("data")) or []
     casts: list[dict] = []
-    found: dict[int, dict] = {}
+    found: dict[str, dict[int, dict]] = {TRINKET_GROUP: {}, POTION_GROUP: {}}
     actor_id = None
 
     for event in events:
@@ -313,16 +333,19 @@ async def _fight(
         known = ability_id in catalog
         item = None
         if not known:
+            # Gear first: Freightrunner's Flask is a trinket with an alchemy icon, so
+            # the potion heuristic below would otherwise claim it.
             item = by_icon.get(_norm_icon(icon)) or by_name.get(ability_name.lower())
-        if not known and item is None:
-            # Builders, spenders and everything else the fight is full of.
-            continue
 
-        if item is not None:
+        if known:
+            toggle = ability_id
+            display_icon = icon
+        elif item is not None:
             # Toggled and labelled as the trinket, not as whatever the ability that
             # fired it happens to be called.
             toggle = _trinket_toggle(item["id"])
-            found.setdefault(
+            display_icon = item["icon"]
+            found[TRINKET_GROUP].setdefault(
                 toggle,
                 {
                     "id": toggle,
@@ -332,10 +355,22 @@ async def _fight(
                     "onByDefault": False,
                 },
             )
-            display_icon = item["icon"]
-        else:
+        elif _is_potion(ability_name, icon):
             toggle = ability_id
             display_icon = icon
+            found[POTION_GROUP].setdefault(
+                toggle,
+                {
+                    "id": toggle,
+                    "name": ability_name or f"Consumable {ability_id}",
+                    "short": _short(ability_name),
+                    "icon": icon,
+                    "onByDefault": False,
+                },
+            )
+        else:
+            # Builders, spenders and everything else the fight is full of.
+            continue
 
         casts.append(
             {
@@ -356,7 +391,7 @@ async def _fight(
         "kill": bool(fight.get("kill")),
         "casts": casts,
         "actor_id": actor_id,
-        "trinket_spells": found,
+        "discovered": found,
     }
 
 
@@ -366,6 +401,18 @@ def _hero(spec_key: str, entry: dict) -> dict | None:
     if tree is None:
         return None
     return {"name": tree.name, "icon": tree.icon, "short": tree.short or _short(tree.name)}
+
+
+def _is_potion(name: str, icon: str) -> bool:
+    """A consumable, by the icon families and names that show up in real parses.
+
+    Checked only after the gear match, since a trinket can carry an alchemy icon.
+    """
+    slug = _norm_icon(icon)
+    if any(hint in slug for hint in POTION_ICON_HINTS):
+        return True
+    lowered = name.lower()
+    return any(hint in lowered for hint in POTION_NAME_HINTS)
 
 
 def _trinket_toggle(item_id: int) -> int:

@@ -81,10 +81,10 @@ reports what is left.
 and it becomes a toggle, gets fetched, and can be exported. Remove it and it vanishes
 from all three. Spell IDs come from the wowhead URL: `/spell=185313/shadow-dance`.
 
-Trinkets are not in the catalog. They are detected per board: gear slots 12 and 13
-of each ranking give the equipped trinkets, and a cast matching one by icon or name
-is a trinket use. The group therefore shows what these ten players actually brought
-to this boss, which is the only trinket list worth having.
+Potions and trinkets are not in the catalog. Both are discovered per board from what
+the ranked players actually used: trinkets from gear slots 12 and 13 matched against
+casts, potions from the alchemy and potion icon families. Gear is matched first,
+since Freightrunner's Flask is a trinket carrying an alchemy flask icon.
 
 For the groups that are hand-curated, get IDs from a real log rather than from
 memory, because a wrong one does not error, it silently matches nothing:

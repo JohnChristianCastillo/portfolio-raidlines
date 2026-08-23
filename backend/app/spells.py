@@ -78,9 +78,17 @@ SUBTLETY_ROGUE = [
         label="Potions",
         color="#3fb950",
         spells=[
-            # TODO(owner): replace with the offensive potions of the active season.
-            # One line each, the ID from the wowhead URL. Anything left here that is
-            # not in the current season simply never appears in a log, harmlessly.
+            # TODO(owner): the offensive potions of the active season, starting with
+            # Potion of Recklessness.
+            #
+            # Do not type these IDs from memory. A wrong potion ID does not error, it
+            # silently matches nothing and leaves a toggle that draws an empty row
+            # forever. Read them off a real log instead:
+            #
+            #   python tools/discover.py --encounter <boss id> --difficulty 5
+            #
+            # which prints every ability the top parse actually cast, as catalog
+            # lines ready to paste in here.
         ],
     ),
     SpellGroup(
@@ -90,6 +98,7 @@ SUBTLETY_ROGUE = [
         spells=[
             # TODO(owner): the handful of on-use trinkets worth watching this season.
             # Deliberately curated, not every trinket in the game (spec section 1).
+            # Same as potions: get the IDs from tools/discover.py, not from memory.
         ],
     ),
 ]

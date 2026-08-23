@@ -80,6 +80,16 @@ from all three. Spell IDs come from the wowhead URL: `/spell=185313/shadow-dance
 The potions and trinkets groups ship empty on purpose. They change every season and
 the whole point is a curated handful, not every trinket in the game.
 
+Get those IDs from a real log rather than from memory, because a wrong one does not
+error, it silently matches nothing:
+
+```
+python tools\discover.py --encounter <boss id> --difficulty 5
+```
+
+That prints every ability the top parse actually cast, each as a catalog line ready
+to paste in.
+
 ## API
 
 | Endpoint | Returns |
@@ -104,6 +114,7 @@ backend/
   tools/
     make_demo_fixtures.py  synthetic offline demo data
     capture.py             record real responses as fixtures
+    discover.py            list what a real parse actually cast, to curate spells.py
 frontend/
   src/
     api.ts               backend types and calls

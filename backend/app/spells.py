@@ -114,8 +114,10 @@ SPEC_QUERY_NAMES: dict[str, tuple[str, str]] = {
     "rogue-subtlety": ("Rogue", "Subtlety"),
 }
 
+# Singular, always. A spec is a singular thing, so it stays singular even though the
+# page shows ten of them. Keep any spec added later in the same form.
 SPEC_LABELS: dict[str, str] = {
-    "rogue-subtlety": "Subtlety Rogues",
+    "rogue-subtlety": "Subtlety Rogue",
 }
 
 

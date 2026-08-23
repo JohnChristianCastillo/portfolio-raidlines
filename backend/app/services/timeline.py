@@ -35,6 +35,7 @@ import logging
 from ..config import settings
 from ..spells import groups_for, hero_slug, hero_tree_for, spec_for, spell_index
 from ..wcl import client, queries
+from . import herotalents
 from .catalog import DIFFICULTY_BY_ID
 
 log = logging.getLogger(__name__)
@@ -269,9 +270,9 @@ async def _player(
         # the cast events, so it costs no extra query. None if they cast nothing.
         "actorId": fight["actor_id"],
         "trinkets": equipped,
-        # Free: talents ride along with the rankings, so identifying the hero tree
-        # costs no extra query. None when the tree has not been named in spells.py.
-        "heroTree": _hero(spec_key, entry),
+        # Read off the log's own ability icons, falling back to the entry IDs
+        # configured on the spec. Neither costs an extra query.
+        "heroTree": fight["hero"] and _hero_payload(fight["hero"]["name"]) or _hero(spec_key, entry),
         # source= focuses the log on this player, which is the whole reason to open
         # it: their gear and their talents, rather than the raid-wide summary.
         "reportUrl": _report_url(code, int(fight_id), fight["actor_id"]),
@@ -318,6 +319,9 @@ async def _fight(
 
     events = ((report.get("events") or {}).get("data")) or []
     casts: list[dict] = []
+    # Every icon this player's abilities carry. Hero talent abilities are named for
+    # their tree, so this doubles as the hero tree evidence at no extra cost.
+    icons_seen: list[str] = []
     found: dict[str, dict[int, dict]] = {TRINKET_GROUP: {}, POTION_GROUP: {}}
     actor_id = None
 
@@ -334,6 +338,8 @@ async def _fight(
 
         icon = icons.get(ability_id, "")
         ability_name = names.get(ability_id, "")
+        if icon:
+            icons_seen.append(icon)
 
         known = ability_id in catalog
         item = None
@@ -397,7 +403,12 @@ async def _fight(
         "casts": casts,
         "actor_id": actor_id,
         "discovered": found,
+        "hero": herotalents.from_icons(icons_seen),
     }
+
+
+def _hero_payload(name: str) -> dict:
+    return {"name": name, "short": _short(name), "asset": f"hero/{hero_slug(name)}.png"}
 
 
 def _hero(spec_key: str, entry: dict) -> dict | None:

@@ -1,0 +1,166 @@
+{
+ "spellslinger": {
+  "name": "Spellslinger",
+  "slug": "spellslinger"
+ },
+ "sunfury": {
+  "name": "Sunfury",
+  "slug": "sunfury"
+ },
+ "frostfire": {
+  "name": "Frostfire",
+  "slug": "frostfire"
+ },
+ "lightsmith": {
+  "name": "Lightsmith",
+  "slug": "lightsmith"
+ },
+ "heraldofthesun": {
+  "name": "Herald of the Sun",
+  "slug": "herald-of-the-sun"
+ },
+ "templar": {
+  "name": "Templar",
+  "slug": "templar"
+ },
+ "colossus": {
+  "name": "Colossus",
+  "slug": "colossus"
+ },
+ "slayer": {
+  "name": "Slayer",
+  "slug": "slayer"
+ },
+ "mountainthane": {
+  "name": "Mountain Thane",
+  "slug": "mountain-thane"
+ },
+ "keeperofthegrove": {
+  "name": "Keeper of the Grove",
+  "slug": "keeper-of-the-grove"
+ },
+ "eluneschosen": {
+  "name": "Elune's Chosen",
+  "slug": "elune-s-chosen"
+ },
+ "druidoftheclaw": {
+  "name": "Druid of the Claw",
+  "slug": "druid-of-the-claw"
+ },
+ "wildstalker": {
+  "name": "Wildstalker",
+  "slug": "wildstalker"
+ },
+ "sanlayn": {
+  "name": "San'layn",
+  "slug": "san-layn"
+ },
+ "deathbringer": {
+  "name": "Deathbringer",
+  "slug": "deathbringer"
+ },
+ "rideroftheapocalypse": {
+  "name": "Rider of the Apocalypse",
+  "slug": "rider-of-the-apocalypse"
+ },
+ "darkranger": {
+  "name": "Dark Ranger",
+  "slug": "dark-ranger"
+ },
+ "packleader": {
+  "name": "Pack Leader",
+  "slug": "pack-leader"
+ },
+ "sentinel": {
+  "name": "Sentinel",
+  "slug": "sentinel"
+ },
+ "voidweaver": {
+  "name": "Voidweaver",
+  "slug": "voidweaver"
+ },
+ "oracle": {
+  "name": "Oracle",
+  "slug": "oracle"
+ },
+ "archon": {
+  "name": "Archon",
+  "slug": "archon"
+ },
+ "fatebound": {
+  "name": "Fatebound",
+  "slug": "fatebound"
+ },
+ "deathstalker": {
+  "name": "Deathstalker",
+  "slug": "deathstalker"
+ },
+ "trickster": {
+  "name": "Trickster",
+  "slug": "trickster"
+ },
+ "stormbringer": {
+  "name": "Stormbringer",
+  "slug": "stormbringer"
+ },
+ "farseer": {
+  "name": "Farseer",
+  "slug": "farseer"
+ },
+ "totemic": {
+  "name": "Totemic",
+  "slug": "totemic"
+ },
+ "hellcaller": {
+  "name": "Hellcaller",
+  "slug": "hellcaller"
+ },
+ "soulharvester": {
+  "name": "Soul Harvester",
+  "slug": "soul-harvester"
+ },
+ "diabolist": {
+  "name": "Diabolist",
+  "slug": "diabolist"
+ },
+ "masterofharmony": {
+  "name": "Master of Harmony",
+  "slug": "master-of-harmony"
+ },
+ "shadopan": {
+  "name": "Shado-Pan",
+  "slug": "shado-pan"
+ },
+ "conduitofthecelestials": {
+  "name": "Conduit of the Celestials",
+  "slug": "conduit-of-the-celestials"
+ },
+ "aldrachireaver": {
+  "name": "Aldrachi Reaver",
+  "slug": "aldrachi-reaver"
+ },
+ "felscarred": {
+  "name": "Fel-Scarred",
+  "slug": "fel-scarred"
+ },
+ "annihilator": {
+  "name": "Annihilator",
+  "slug": "annihilator"
+ },
+ "flameshaper": {
+  "name": "Flameshaper",
+  "slug": "flameshaper"
+ },
+ "scalecommander": {
+  "name": "Scalecommander",
+  "slug": "scalecommander"
+ },
+ "chronowarden": {
+  "name": "Chronowarden",
+  "slug": "chronowarden"
+ },
+ "voidscarred": {
+  "name": "Void-Scarred",
+  "slug": "void-scarred"
+ }
+}

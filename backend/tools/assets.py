@@ -211,6 +211,27 @@ def main() -> None:
         encoding="utf-8",
     )
 
+    # A copy the backend can read at request time, so hero tree detection needs no
+    # Blizzard call and no network.
+    if heroes:
+        data_dir = Path(__file__).resolve().parent.parent / "app" / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+        (data_dir / "hero_trees.json").write_text(
+            json.dumps(
+                {
+                    "".join(c for c in h["name"].lower() if c.isalnum()): {
+                        "name": h["name"],
+                        "slug": h["slug"],
+                    }
+                    for h in heroes
+                },
+                ensure_ascii=False,
+                indent=1,
+            ),
+            encoding="utf-8",
+        )
+        print(f"wrote {data_dir / 'hero_trees.json'} ({len(heroes)} trees)")
+
     art = [p for p in ASSETS.rglob("*") if p.suffix in (".jpg", ".png")]
     total = len(art)
     size = sum(p.stat().st_size for p in art)

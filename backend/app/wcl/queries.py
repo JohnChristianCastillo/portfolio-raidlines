@@ -1,4 +1,4 @@
-"""The GraphQL documents Raidline sends to Warcraft Logs.
+"""The GraphQL documents Raidlines sends to Warcraft Logs.
 
 Kept as plain strings in one file so the whole API surface we depend on is visible
 at a glance:

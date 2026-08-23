@@ -9,7 +9,7 @@ Three things live here, in the order a request passes through them:
      fight's event query is the expensive one. Every response is written to
      data/cache keyed by query + variables. A logged fight never changes, so its
      entry is kept for months; rankings expire in hours as new parses land.
-  3. Fixture fallback. With no credentials configured, or with RAIDLINE_FORCE_FIXTURES
+  3. Fixture fallback. With no credentials configured, or with RAIDLINES_FORCE_FIXTURES
      set, reads come from app/fixtures instead. That is what lets the app be run and
      demoed with no account at all, and it is the same code path either way: the
      service layer above cannot tell the difference.
@@ -120,7 +120,7 @@ class TokenStore:
         if response.status_code != 200:
             raise WclError(
                 f"token request failed ({response.status_code}). "
-                "Check RAIDLINE_WCL_CLIENT_ID / _SECRET, and that the client was "
+                "Check RAIDLINES_WCL_CLIENT_ID / _SECRET, and that the client was "
                 "created with Public Client unchecked."
             )
         payload = response.json()
@@ -204,9 +204,9 @@ def _fixture(kind: str, variables: dict[str, Any]) -> dict:
     path = FIXTURES_DIR / f"{fixture_name(kind, variables)}.json"
     if not path.is_file():
         raise FixtureMiss(
-            f"no fixture for {path.name}. Raidline is running without Warcraft Logs "
+            f"no fixture for {path.name}. Raidlines is running without Warcraft Logs "
             "credentials, so it can only show what was recorded. Set "
-            "RAIDLINE_WCL_CLIENT_ID and RAIDLINE_WCL_CLIENT_SECRET for live data."
+            "RAIDLINES_WCL_CLIENT_ID and RAIDLINES_WCL_CLIENT_SECRET for live data."
         )
     return json.loads(path.read_text(encoding="utf-8"))
 

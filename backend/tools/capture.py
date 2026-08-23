@@ -108,7 +108,7 @@ def main() -> None:
 
     if not settings.live_enabled:
         raise SystemExit(
-            "no Warcraft Logs credentials configured (or RAIDLINE_FORCE_FIXTURES is "
+            "no Warcraft Logs credentials configured (or RAIDLINES_FORCE_FIXTURES is "
             "set). Nothing to capture. See _local/wcl_api_registration/how_to_setup.md"
         )
 

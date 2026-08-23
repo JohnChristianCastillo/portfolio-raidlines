@@ -1,4 +1,4 @@
-"""Raidline: read how the best parses spend their cooldowns, then copy the timing.
+"""Raidlines: read how the best parses spend their cooldowns, then copy the timing.
 
 Inspired by lorrgs.io, deliberately narrower. Pick a boss, a difficulty and a spec;
 the top parses on Warcraft Logs are laid out as one timeline per player so their

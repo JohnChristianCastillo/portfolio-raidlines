@@ -67,7 +67,7 @@ class _Token:
         if response.status_code != 200:
             raise BlizzardError(
                 f"token request failed ({response.status_code}). Check "
-                "RAIDLINE_BLIZZARD_CLIENT_ID / _SECRET."
+                "RAIDLINES_BLIZZARD_CLIENT_ID / _SECRET."
             )
         payload = response.json()
         self._token = payload["access_token"]
@@ -96,8 +96,8 @@ class Client:
     def __init__(self, cache_ttl: int = 30 * 24 * 3600) -> None:
         if not settings.blizzard_enabled:
             raise BlizzardError(
-                "no Blizzard credentials configured. Set RAIDLINE_BLIZZARD_CLIENT_ID "
-                "and RAIDLINE_BLIZZARD_CLIENT_SECRET in backend/.env"
+                "no Blizzard credentials configured. Set RAIDLINES_BLIZZARD_CLIENT_ID "
+                "and RAIDLINES_BLIZZARD_CLIENT_SECRET in backend/.env"
             )
         self._http = httpx.Client(timeout=30.0)
         self._cache_ttl = cache_ttl
@@ -159,7 +159,7 @@ class Client:
             self._store(cache_key, data)
         return data
 
-    # --- the bits Raidline actually wants -------------------------------------------
+    # --- the bits Raidlines actually wants -------------------------------------------
 
     def spell(self, spell_id: int) -> dict | None:
         """Name and description. The description is what the tooltip shows."""

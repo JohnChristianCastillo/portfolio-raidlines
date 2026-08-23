@@ -1,4 +1,4 @@
-"""Fetch the game art Raidline ships: specialisation and hero talent icons.
+"""Fetch the game art Raidlines ships: specialisation and hero talent icons.
 
     python tools/assets.py                # specialisation icons and hero talent icons
     python tools/assets.py --skip-specs   # hero talent icons only
@@ -51,7 +51,7 @@ ICON_CDN = "https://wow.zamimg.com/images/wow/icons/large"
 # rather than page scraping, and it is polite to identify ourselves.
 WIKI_API = "https://warcraft.wiki.gg/api.php"
 WIKI_CATEGORY = "Category:WoW_Icons:_Pseudo_TalentFrame"
-USER_AGENT = "Raidline/0.1 (personal, non-commercial fan project)"
+USER_AGENT = "Raidlines/0.1 (personal, non-commercial fan project)"
 
 
 def slugify(name: str) -> str:

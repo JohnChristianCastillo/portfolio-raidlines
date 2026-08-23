@@ -1,5 +1,5 @@
 {
-  "name": "raidline-frontend",
+  "name": "raidlines-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",

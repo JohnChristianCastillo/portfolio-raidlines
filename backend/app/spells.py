@@ -1,4 +1,4 @@
-"""The tracked-spell catalog: what Raidline is allowed to draw on a timeline.
+"""The tracked-spell catalog: what Raidlines is allowed to draw on a timeline.
 
 Adding a spell here makes it a toggle in the UI, removing it drops it. Group order
 is toggle-row order.
@@ -68,7 +68,7 @@ class SpellGroup:
 
 @dataclass(frozen=True)
 class Spec:
-    """A playable specialisation Raidline can draw a board for.
+    """A playable specialisation Raidlines can draw a board for.
 
     key         our slug, used in URLs and as the catalog key
     label       display name, singular

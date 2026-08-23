@@ -1,4 +1,4 @@
-"""Generate the offline demo fixtures Raidline falls back to without credentials.
+"""Generate the offline demo fixtures Raidlines falls back to without credentials.
 
 Run once (or after changing the catalog):
 

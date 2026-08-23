@@ -1,6 +1,6 @@
-"""Raidline service configuration.
+"""Raidlines service configuration.
 
-Overridable via environment variables (prefix RAIDLINE_) or a .env file. Raidline
+Overridable via environment variables (prefix RAIDLINES_) or a .env file. Raidlines
 reads public Warcraft Logs ranking data and renders the top parses' cooldown usage
 as a comparable timeline, then exports it as a Method Raid Tools reminder string.
 
@@ -14,10 +14,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="RAIDLINE_", env_file=".env", extra="ignore"
+        env_prefix="RAIDLINES_", env_file=".env", extra="ignore"
     )
 
-    app_name: str = "raidline"
+    app_name: str = "raidlines"
     host: str = "0.0.0.0"
     port: int = 8600
 
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     wcl_client_secret: str = ""
     wcl_token_url: str = "https://www.warcraftlogs.com/oauth/token"
     # The public-data endpoint. The /api/v2/user endpoint needs the authorization-code
-    # flow and only exposes the signed-in user's own reports, which Raidline never reads.
+    # flow and only exposes the signed-in user's own reports, which Raidlines never reads.
     wcl_api_url: str = "https://www.warcraftlogs.com/api/v2/client"
 
     # Serve fixtures even when credentials exist. Useful for working on the UI without

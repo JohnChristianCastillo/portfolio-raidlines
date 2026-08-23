@@ -130,13 +130,13 @@ export default function App() {
   if (bootError) {
     return (
       <div className="boot-error">
-        <h1>Raidline</h1>
+        <h1>Raidlines</h1>
         <p>Could not reach the backend: {bootError}</p>
       </div>
     );
   }
 
-  if (!meta) return <div className="booting">Loading Raidline...</div>;
+  if (!meta) return <div className="booting">Loading Raidlines...</div>;
 
   const specLabel = spec?.label ?? specKey;
   const bossName = timelines?.encounter.name ?? "";
@@ -145,7 +145,7 @@ export default function App() {
     <div className="app">
       <header className="masthead">
         <h1>
-          <span className="brand">Raidline</span>
+          <span className="brand">Raidlines</span>
           {bossName ? (
             <span className="subject">
               {specLabel} <span className="vs">vs.</span> {bossName}

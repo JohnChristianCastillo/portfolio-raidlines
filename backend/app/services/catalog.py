@@ -60,7 +60,7 @@ async def zones() -> list[dict]:
     Scoped to the current expansion by default. Warcraft Logs happily lists every
     tier back to Classic, but this is built to be shown to people raiding now, and a
     dropdown of twenty-six mostly dead tiers buries the one they came for. Set
-    RAIDLINE_CURRENT_EXPANSION_ONLY=0 to get the lot back; nothing else changes.
+    RAIDLINES_CURRENT_EXPANSION_ONLY=0 to get the lot back; nothing else changes.
     """
     data = await client.graphql(
         queries.ZONES,

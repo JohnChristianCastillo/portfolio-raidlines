@@ -1,8 +1,8 @@
-# Raidline
+# Raidlines
 
 Read how the best parses spend their cooldowns, then copy the timing.
 
-Pick a boss, a difficulty and a spec. Raidline pulls the top ten ranked parses from
+Pick a boss, a difficulty and a spec. Raidlines pulls the top ten ranked parses from
 Warcraft Logs and lays each one out as a timeline against a shared scale, so ten logs
 of different lengths can be compared at a glance. Click any player and you get their
 cooldown usage as a Method Raid Tools reminder note, ready to paste into the game.
@@ -55,19 +55,19 @@ ten parses each.
 
 ## Live data
 
-Raidline reads the public Warcraft Logs v2 API. Register a client at
+Raidlines reads the public Warcraft Logs v2 API. Register a client at
 [warcraftlogs.com/api/clients](https://www.warcraftlogs.com/api/clients/) with
 **Public Client unchecked**, then:
 
 ```
 cp backend/.env.example backend/.env
-# fill in RAIDLINE_WCL_CLIENT_ID and RAIDLINE_WCL_CLIENT_SECRET
+# fill in RAIDLINES_WCL_CLIENT_ID and RAIDLINES_WCL_CLIENT_SECRET
 ```
 
-The redirect URL the form insists on is never used. Raidline uses the client
+The redirect URL the form insists on is never used. Raidlines uses the client
 credentials flow against `/api/v2/client`, which is public data and involves no
 browser redirect. The authorization-code flow and its redirect URL are only for
-reading a signed-in user's own private reports, which Raidline never does.
+reading a signed-in user's own private reports, which Raidlines never does.
 
 The rate limit is point-based (3600/hour by default), so every response is cached to
 disk under `backend/data/cache`. Cast queries are deliberately unfiltered: measured

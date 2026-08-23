@@ -6,7 +6,7 @@
   GET /api/talents     one player's talent loadout, as an in-game import string
   GET /api/budget      remaining Warcraft Logs point budget (diagnostics)
 
-Nothing here is owner-gated. Raidline reads public ranking data and holds no user
+Nothing here is owner-gated. Raidlines reads public ranking data and holds no user
 data of its own, so every surface is readable by any admitted session.
 """
 

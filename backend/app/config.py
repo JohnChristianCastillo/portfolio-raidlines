@@ -55,6 +55,18 @@ class Settings(BaseSettings):
     # How many parses to pull per boss/difficulty. The spec fixes this at the top 10.
     top_n: int = 10
 
+    # --- Blizzard Game Data API (develop.battle.net) --------------------------------
+    # Build-time only: spell names, descriptions and icons, plus specialisation icons.
+    # Everything is baked into the static output, so serving never calls Blizzard.
+    blizzard_client_id: str = ""
+    blizzard_client_secret: str = ""
+    blizzard_token_url: str = "https://oauth.battle.net/token"
+    blizzard_host: str = "https://eu.api.blizzard.com"
+    # static-<region> resolves to the current game build. Pinning a build namespace
+    # works too but goes stale on every patch.
+    blizzard_namespace: str = "static-eu"
+    blizzard_locale: str = "en_GB"
+
     # Show only the current expansion's raids. Warcraft Logs lists every tier back to
     # Classic, which buries the one people are actually progressing. Set to 0 to get
     # the full history back in the dropdown.
@@ -63,6 +75,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.cors_origins_csv.split(",") if o.strip()]
+
+    @property
+    def blizzard_enabled(self) -> bool:
+        return bool(self.blizzard_client_id and self.blizzard_client_secret)
 
     @property
     def live_enabled(self) -> bool:

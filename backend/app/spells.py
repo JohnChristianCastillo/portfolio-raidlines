@@ -39,18 +39,24 @@ class HeroTree:
     right, and the hero tree in the middle. The middle one offers a choice of two,
     and the root node of each is unique to it, so its entry ID identifies the tree.
 
-    entry_id  the root node's entry ID, which is what a ranking's talents list
-              carries as talentID. NOT the node ID and NOT the spell ID.
-    name      display name, e.g. Deathstalker. Blank means unidentified, and nothing
-              is drawn rather than something wrong.
-    short     2-3 letter badge, drawn when there is no icon.
-    icon      wowhead icon slug. Optional.
+    entry_id   the root node's entry ID, which is what a ranking's talents list
+               carries as talentID. NOT the node ID and NOT the spell ID.
+    name       display name, e.g. Deathstalker. Blank means unidentified, and
+               nothing is drawn rather than something wrong.
+    short      2-3 letter badge, drawn when there is no icon.
+    root_spell the root node's spell ID. Blizzard exposes no icon for a hero talent
+               tree, so the tree is drawn with its root ability's icon, which is what
+               a player recognises it by anyway.
+    icon_slug  fallback icon name, as Warcraft Logs reports it. Needed because a
+               root_spell taken from an older patch may no longer exist in Blizzard's
+               data, and because the game renumbers spells between expansions.
     """
 
     entry_id: int
     name: str
     short: str = ""
-    icon: str = ""
+    root_spell: int = 0
+    icon_slug: str = ""
 
 
 @dataclass(frozen=True)
@@ -170,10 +176,18 @@ SPECS: dict[str, Spec] = {
         role="dps",
         groups=SUBTLETY_ROGUE,
         hero_trees=[
-            # root node Deathstalker's Mark (node 95137, spell 467052)
-            HeroTree(117733, "Deathstalker", short="DS"),
-            # root node Unseen Blade (node 95140, spell 441146)
-            HeroTree(117737, "Trickster", short="TR"),
+            # Root node Deathstalker's Mark (node 95137). Spell 467052 was its ID
+            # in The War Within and no longer resolves, so this one falls back to the
+            # icon slug Warcraft Logs reports.
+            HeroTree(
+                117733,
+                "Deathstalker",
+                short="DS",
+                root_spell=467052,
+                icon_slug="inv_ability_deathstalkerrogue_deathstalkersmark",
+            ),
+            # root node Unseen Blade (node 95140)
+            HeroTree(117737, "Trickster", short="TR", root_spell=441146),
         ],
     ),
 }

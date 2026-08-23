@@ -395,7 +395,12 @@ def _hero(spec_key: str, entry: dict) -> dict | None:
     tree = hero_tree_for(spec_key, talent_ids)
     if tree is None:
         return None
-    return {"name": tree.name, "icon": tree.icon, "short": tree.short or _short(tree.name)}
+    return {
+        "name": tree.name,
+        "short": tree.short or _short(tree.name),
+        # The icon is a static asset keyed by entry ID; tools/assets.py fetches it.
+        "icon": f"hero/{tree.entry_id}" if tree.root_spell else "",
+    }
 
 
 def _is_potion(name: str, icon: str) -> bool:

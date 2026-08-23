@@ -109,12 +109,14 @@ export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
                 ))}
                 {player.heroTree && (
                   // Round, so it reads as a different kind of thing from the
-                  // square trinkets sitting next to it.
+                  // square trinkets sitting next to it. Ours to serve, unlike the
+                  // spell icons, so it needs no CDN fallback.
                   <span className="hero" title={player.heroTree.name}>
-                    <SpellIcon
-                      icon={player.heroTree.icon}
-                      short={player.heroTree.short}
+                    <img
+                      className="spell-icon"
+                      src={`${import.meta.env.BASE_URL}assets/${player.heroTree.asset}`}
                       alt={player.heroTree.name}
+                      loading="lazy"
                     />
                   </span>
                 )}

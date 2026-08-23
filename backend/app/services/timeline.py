@@ -33,7 +33,7 @@ import asyncio
 import logging
 
 from ..config import settings
-from ..spells import groups_for, hero_tree_for, spec_for, spell_index
+from ..spells import groups_for, hero_slug, hero_tree_for, spec_for, spell_index
 from ..wcl import client, queries
 from .catalog import DIFFICULTY_BY_ID
 
@@ -398,8 +398,9 @@ def _hero(spec_key: str, entry: dict) -> dict | None:
     return {
         "name": tree.name,
         "short": tree.short or _short(tree.name),
-        # The icon is a static asset keyed by entry ID; tools/assets.py fetches it.
-        "icon": f"hero/{tree.entry_id}" if tree.root_spell else "",
+        # A static asset we ship, keyed by the tree's name. tools/assets.py fetches
+        # the art for every hero tree in the game, so this resolves for any spec.
+        "asset": f"hero/{hero_slug(tree.name)}.png" if tree.name else "",
     }
 
 

@@ -47,9 +47,8 @@ class HeroTree:
     root_spell the root node's spell ID. Blizzard exposes no icon for a hero talent
                tree, so the tree is drawn with its root ability's icon, which is what
                a player recognises it by anyway.
-    icon_slug  fallback icon name, as Warcraft Logs reports it. Needed because a
-               root_spell taken from an older patch may no longer exist in Blizzard's
-               data, and because the game renumbers spells between expansions.
+    icon_slug  unused for art now that tools/assets.py fetches the tree's own icon
+               by name. Kept as a fallback hook for a tree the wiki lacks.
     """
 
     entry_id: int
@@ -176,21 +175,17 @@ SPECS: dict[str, Spec] = {
         role="dps",
         groups=SUBTLETY_ROGUE,
         hero_trees=[
-            # Root node Deathstalker's Mark (node 95137). Spell 467052 was its ID
-            # in The War Within and no longer resolves, so this one falls back to the
-            # icon slug Warcraft Logs reports.
-            HeroTree(
-                117733,
-                "Deathstalker",
-                short="DS",
-                root_spell=467052,
-                icon_slug="inv_ability_deathstalkerrogue_deathstalkersmark",
-            ),
-            # root node Unseen Blade (node 95140)
-            HeroTree(117737, "Trickster", short="TR", root_spell=441146),
+            HeroTree(117733, "Deathstalker", short="DS"),
+            HeroTree(117737, "Trickster", short="TR"),
         ],
     ),
 }
+
+
+def hero_slug(name: str) -> str:
+    """Filename key for a hero tree's art, matching tools/assets.py."""
+    out = "".join(c.lower() if c.isalnum() else "-" for c in name)
+    return "-".join(filter(None, out.split("-")))
 
 
 def spec_for(spec_key: str) -> Spec | None:

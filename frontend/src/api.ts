@@ -85,7 +85,7 @@ export interface Player {
   /** The two trinkets they had equipped. */
   trinkets: Trinket[];
   /** Hero talent tree. Null when it has not been named in spells.py. */
-  heroTree: { name: string; icon: string; short: string } | null;
+  heroTree: { name: string; short: string; asset: string } | null;
   reportUrl: string;
   casts: Cast[];
 }

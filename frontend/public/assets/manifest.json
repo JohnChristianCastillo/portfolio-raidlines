@@ -763,20 +763,250 @@
  ],
  "heroTrees": [
   {
-   "entryId": 117733,
-   "spec": "rogue-subtlety",
-   "name": "Deathstalker",
-   "rootSpell": 467052,
-   "rootSpellName": "",
-   "icon": "hero/117733.jpg"
+   "id": 40,
+   "name": "Spellslinger",
+   "slug": "spellslinger",
+   "icon": "hero/spellslinger.png"
   },
   {
-   "entryId": 117737,
-   "spec": "rogue-subtlety",
+   "id": 39,
+   "name": "Sunfury",
+   "slug": "sunfury",
+   "icon": "hero/sunfury.png"
+  },
+  {
+   "id": 41,
+   "name": "Frostfire",
+   "slug": "frostfire",
+   "icon": "hero/frostfire.png"
+  },
+  {
+   "id": 49,
+   "name": "Lightsmith",
+   "slug": "lightsmith",
+   "icon": "hero/lightsmith.png"
+  },
+  {
+   "id": 50,
+   "name": "Herald of the Sun",
+   "slug": "herald-of-the-sun",
+   "icon": "hero/herald-of-the-sun.png"
+  },
+  {
+   "id": 48,
+   "name": "Templar",
+   "slug": "templar",
+   "icon": "hero/templar.png"
+  },
+  {
+   "id": 62,
+   "name": "Colossus",
+   "slug": "colossus",
+   "icon": "hero/colossus.png"
+  },
+  {
+   "id": 60,
+   "name": "Slayer",
+   "slug": "slayer",
+   "icon": "hero/slayer.png"
+  },
+  {
+   "id": 61,
+   "name": "Mountain Thane",
+   "slug": "mountain-thane",
+   "icon": "hero/mountain-thane.png"
+  },
+  {
+   "id": 23,
+   "name": "Keeper of the Grove",
+   "slug": "keeper-of-the-grove",
+   "icon": "hero/keeper-of-the-grove.png"
+  },
+  {
+   "id": 24,
+   "name": "Elune's Chosen",
+   "slug": "elune-s-chosen",
+   "icon": "hero/elune-s-chosen.png"
+  },
+  {
+   "id": 21,
+   "name": "Druid of the Claw",
+   "slug": "druid-of-the-claw",
+   "icon": "hero/druid-of-the-claw.png"
+  },
+  {
+   "id": 22,
+   "name": "Wildstalker",
+   "slug": "wildstalker",
+   "icon": "hero/wildstalker.png"
+  },
+  {
+   "id": 31,
+   "name": "San'layn",
+   "slug": "san-layn",
+   "icon": "hero/san-layn.png"
+  },
+  {
+   "id": 33,
+   "name": "Deathbringer",
+   "slug": "deathbringer",
+   "icon": "hero/deathbringer.png"
+  },
+  {
+   "id": 32,
+   "name": "Rider of the Apocalypse",
+   "slug": "rider-of-the-apocalypse",
+   "icon": "hero/rider-of-the-apocalypse.png"
+  },
+  {
+   "id": 44,
+   "name": "Dark Ranger",
+   "slug": "dark-ranger",
+   "icon": "hero/dark-ranger.png"
+  },
+  {
+   "id": 43,
+   "name": "Pack Leader",
+   "slug": "pack-leader",
+   "icon": "hero/pack-leader.png"
+  },
+  {
+   "id": 42,
+   "name": "Sentinel",
+   "slug": "sentinel",
+   "icon": "hero/sentinel.png"
+  },
+  {
+   "id": 18,
+   "name": "Voidweaver",
+   "slug": "voidweaver",
+   "icon": "hero/voidweaver.png"
+  },
+  {
+   "id": 20,
+   "name": "Oracle",
+   "slug": "oracle",
+   "icon": "hero/oracle.png"
+  },
+  {
+   "id": 19,
+   "name": "Archon",
+   "slug": "archon",
+   "icon": "hero/archon.png"
+  },
+  {
+   "id": 52,
+   "name": "Fatebound",
+   "slug": "fatebound",
+   "icon": "hero/fatebound.png"
+  },
+  {
+   "id": 53,
+   "name": "Deathstalker",
+   "slug": "deathstalker",
+   "icon": "hero/deathstalker.png"
+  },
+  {
+   "id": 51,
    "name": "Trickster",
-   "rootSpell": 441146,
-   "rootSpellName": "Unseen Blade",
-   "icon": "hero/117737.jpg"
+   "slug": "trickster",
+   "icon": "hero/trickster.png"
+  },
+  {
+   "id": 70,
+   "name": "Stormbringer",
+   "slug": "stormbringer",
+   "icon": "hero/stormbringer.png"
+  },
+  {
+   "id": 56,
+   "name": "Farseer",
+   "slug": "farseer",
+   "icon": "hero/farseer.png"
+  },
+  {
+   "id": 74,
+   "name": "Totemic",
+   "slug": "totemic",
+   "icon": "hero/totemic.png"
+  },
+  {
+   "id": 58,
+   "name": "Hellcaller",
+   "slug": "hellcaller",
+   "icon": "hero/hellcaller.png"
+  },
+  {
+   "id": 57,
+   "name": "Soul Harvester",
+   "slug": "soul-harvester",
+   "icon": "hero/soul-harvester.png"
+  },
+  {
+   "id": 59,
+   "name": "Diabolist",
+   "slug": "diabolist",
+   "icon": "hero/diabolist.png"
+  },
+  {
+   "id": 66,
+   "name": "Master of Harmony",
+   "slug": "master-of-harmony",
+   "icon": "hero/master-of-harmony.png"
+  },
+  {
+   "id": 65,
+   "name": "Shado-Pan",
+   "slug": "shado-pan",
+   "icon": "hero/shado-pan.png"
+  },
+  {
+   "id": 64,
+   "name": "Conduit of the Celestials",
+   "slug": "conduit-of-the-celestials",
+   "icon": "hero/conduit-of-the-celestials.png"
+  },
+  {
+   "id": 35,
+   "name": "Aldrachi Reaver",
+   "slug": "aldrachi-reaver",
+   "icon": "hero/aldrachi-reaver.png"
+  },
+  {
+   "id": 34,
+   "name": "Fel-Scarred",
+   "slug": "fel-scarred",
+   "icon": "hero/fel-scarred.png"
+  },
+  {
+   "id": 124,
+   "name": "Annihilator",
+   "slug": "annihilator",
+   "icon": "hero/annihilator.png"
+  },
+  {
+   "id": 37,
+   "name": "Flameshaper",
+   "slug": "flameshaper",
+   "icon": "hero/flameshaper.png"
+  },
+  {
+   "id": 36,
+   "name": "Scalecommander",
+   "slug": "scalecommander",
+   "icon": "hero/scalecommander.png"
+  },
+  {
+   "id": 38,
+   "name": "Chronowarden",
+   "slug": "chronowarden",
+   "icon": "hero/chronowarden.png"
+  },
+  {
+   "id": 126,
+   "name": "Void-Scarred",
+   "slug": "void-scarred",
+   "icon": "hero/void-scarred.png"
   }
  ]
 }

@@ -82,11 +82,13 @@ export default function Timeline({ data, spec, enabled, onPlayer }: Props) {
           {enabled.size === 0 ? "no spells selected" : `${enabled.size} tracked`}
         </div>
         <div className="cell-track">
-          {ticks.map((t) => (
-            <div className="tick" key={t} style={{ left: pct(t) }}>
-              <span className="tick-label">{formatTime(t).slice(0, 5)}</span>
-            </div>
-          ))}
+          <div className="track-inner">
+            {ticks.map((t) => (
+              <div className="tick" key={t} style={{ left: pct(t) }}>
+                <span className="tick-label">{formatTime(t).slice(0, 5)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -108,39 +110,41 @@ export default function Timeline({ data, spec, enabled, onPlayer }: Props) {
             </button>
 
             <div className="cell-track">
-              {ticks.map((t) => (
-                <div className="tick tick--faint" key={t} style={{ left: pct(t) }} />
-              ))}
+              <div className="track-inner">
+                {ticks.map((t) => (
+                  <div className="tick tick--faint" key={t} style={{ left: pct(t) }} />
+                ))}
 
-              <div className="fight-bar" style={{ width: pct(player.duration) }} />
-              {player.duration < span && (
-                <span className="kill-time" style={{ left: pct(player.duration) }}>
-                  {formatTime(player.duration).slice(0, 5)}
-                </span>
-              )}
+                <div className="fight-bar" style={{ width: pct(player.duration) }} />
+                {player.duration < span && (
+                  <span className="kill-time" style={{ left: pct(player.duration) }}>
+                    {formatTime(player.duration).slice(0, 5)}
+                  </span>
+                )}
 
-              {casts.map((cast, index) => (
-                <button
-                  type="button"
-                  // Two casts can share a spell and a timestamp after rounding, so the
-                  // index is part of the key.
-                  key={`${cast.spellId}-${cast.t}-${index}`}
-                  className="cast"
-                  style={{
-                    left: pct(cast.t),
-                    borderColor: colorOf.get(cast.spellId) ?? "#888",
-                  }}
-                  title={`${cast.name || shortOf.get(cast.spellId) || cast.spellId} at ${formatTime(cast.t)}`}
-                  onClick={() => onPlayer(player)}
-                >
-                  <SpellIcon
-                    icon={cast.icon}
-                    short={shortOf.get(cast.spellId) ?? "?"}
-                    alt={cast.name}
-                  />
-                  <span className="cast-time">{formatTime(cast.t).slice(0, 5)}</span>
-                </button>
-              ))}
+                {casts.map((cast, index) => (
+                  <button
+                    type="button"
+                    // Two casts can share a spell and a timestamp after rounding, so
+                    // the index is part of the key.
+                    key={`${cast.spellId}-${cast.t}-${index}`}
+                    className="cast"
+                    style={{
+                      left: pct(cast.t),
+                      borderColor: colorOf.get(cast.spellId) ?? "#888",
+                    }}
+                    title={`${cast.name || shortOf.get(cast.spellId) || cast.spellId} at ${formatTime(cast.t)}`}
+                    onClick={() => onPlayer(player)}
+                  >
+                    <SpellIcon
+                      icon={cast.icon}
+                      short={shortOf.get(cast.spellId) ?? "?"}
+                      alt={cast.name}
+                    />
+                    <span className="cast-time">{formatTime(cast.t).slice(0, 5)}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         );

@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     # How many parses to pull per boss/difficulty. The spec fixes this at the top 10.
     top_n: int = 10
 
+    # Show only the current expansion's raids. Warcraft Logs lists every tier back to
+    # Classic, which buries the one people are actually progressing. Set to 0 to get
+    # the full history back in the dropdown.
+    current_expansion_only: bool = True
+
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.cors_origins_csv.split(",") if o.strip()]

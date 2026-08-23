@@ -373,6 +373,23 @@ code {
   overflow: visible;
 }
 
+/*
+ * The scale lives on this inner element, inset from both edges, and every marker
+ * positions against it.
+ *
+ * Padding on .cell-track cannot do this job: percentage offsets on absolutely
+ * positioned children resolve against the padding box, so they would ignore it. The
+ * markers are centred on their instant (translateX(-50%)), so a cast at 0:00 hangs
+ * half its width past the left edge and lands on top of the dps figure in the name
+ * column. The right inset does the same for the last cast and for the kill-time
+ * label that trails it.
+ */
+.track-inner {
+  position: relative;
+  height: 100%;
+  margin: 0 44px 0 26px;
+}
+
 .tick {
   position: absolute;
   top: 0;

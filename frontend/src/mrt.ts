@@ -30,7 +30,9 @@ export function formatTime(seconds: number): string {
  */
 export function buildReminder(casts: Cast[], enabled: ReadonlySet<number>): string {
   return casts
-    .filter((cast) => enabled.has(cast.spellId))
+    // Selected by toggle, written as the real spell: MRT needs the spell ID, not
+    // the trinket item the toggle is keyed on.
+    .filter((cast) => enabled.has(cast.toggle))
     .slice()
     .sort((a, b) => a.t - b.t)
     .map((cast) => `{time:${formatTime(cast.t)}} -  {spell:${cast.spellId}}`)

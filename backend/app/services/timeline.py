@@ -17,13 +17,25 @@ The trinket group is built per board rather than hand-maintained. Gear slots 12 
 13 of each ranking are the equipped trinkets; a cast whose icon or name matches one
 of them is a trinket use. That keeps the toggles to what these ten players brought
 to this boss, which is the only trinket list worth showing.
+
+Trinkets are labelled and toggled by the ITEM, never by the ability. One trinket can
+fire under several names (Light Company Guidon casts "Charge!"), so keying off the
+ability both mislabels the toggle and splits one trinket across several of them.
+Hence the `toggle` on every cast: the trinket item for a trinket, the spell itself
+for everything else. The MRT export still writes the real spell ID.
 """
 
 import asyncio
 import logging
 
 from ..config import settings
-from ..spells import SPEC_LABELS, SPEC_QUERY_NAMES, groups_for, spell_index
+from ..spells import (
+    SPEC_LABELS,
+    SPEC_QUERY_NAMES,
+    groups_for,
+    hero_tree_for,
+    spell_index,
+)
 from ..wcl import client, queries
 from .catalog import DIFFICULTY_BY_ID
 
@@ -72,7 +84,7 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
     semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
     results = await asyncio.gather(
         *(
-            _player(rank, entry, catalog, semaphore)
+            _player(rank, entry, catalog, spec_key, semaphore)
             for rank, entry in enumerate(rankings, start=1)
         ),
         return_exceptions=True,
@@ -165,6 +177,17 @@ async def _rankings(
     return rankings, encounter.get("name", "")
 
 
+def _trinket_lookup(equipped: list[dict]) -> tuple[dict, dict]:
+    """Icon and name indexes, so a cast can be traced back to the item that fired it."""
+    by_icon, by_name = {}, {}
+    for item in equipped:
+        if item.get("icon"):
+            by_icon[_norm_icon(item["icon"])] = item
+        if item.get("name"):
+            by_name[item["name"].lower()] = item
+    return by_icon, by_name
+
+
 def _equipped_trinkets(entry: dict) -> list[dict]:
     gear = entry.get("gear") or []
     out = []
@@ -186,6 +209,7 @@ async def _player(
     rank: int,
     entry: dict,
     catalog: dict,
+    spec_key: str,
     semaphore: asyncio.Semaphore,
 ) -> tuple[dict, dict[int, dict]]:
     report = entry.get("report") or {}
@@ -220,7 +244,12 @@ async def _player(
         # the cast events, so it costs no extra query. None if they cast nothing.
         "actorId": fight["actor_id"],
         "trinkets": equipped,
-        "reportUrl": f"https://www.warcraftlogs.com/reports/{code}#fight={fight_id}",
+        # Free: talents ride along with the rankings, so identifying the hero tree
+        # costs no extra query. None when the tree has not been named in spells.py.
+        "heroTree": _hero(spec_key, entry),
+        # source= focuses the log on this player, which is the whole reason to open
+        # it: their gear and their talents, rather than the raid-wide summary.
+        "reportUrl": _report_url(code, int(fight_id), fight["actor_id"]),
         "casts": fight["casts"],
     }
     return player, fight["trinket_spells"]
@@ -260,8 +289,7 @@ async def _fight(
     icons = {a["gameID"]: a.get("icon", "") for a in abilities if a.get("gameID")}
     names = {a["gameID"]: a.get("name", "") for a in abilities if a.get("gameID")}
 
-    trinket_icons = {_norm_icon(t["icon"]) for t in equipped if t.get("icon")}
-    trinket_names = {t["name"].lower() for t in equipped if t.get("name")}
+    by_icon, by_name = _trinket_lookup(equipped)
 
     events = ((report.get("events") or {}).get("data")) or []
     casts: list[dict] = []
@@ -283,31 +311,41 @@ async def _fight(
         ability_name = names.get(ability_id, "")
 
         known = ability_id in catalog
-        is_trinket = _norm_icon(icon) in trinket_icons or (
-            ability_name and ability_name.lower() in trinket_names
-        )
-        if not known and not is_trinket:
+        item = None
+        if not known:
+            item = by_icon.get(_norm_icon(icon)) or by_name.get(ability_name.lower())
+        if not known and item is None:
             # Builders, spenders and everything else the fight is full of.
             continue
 
-        if is_trinket and not known:
+        if item is not None:
+            # Toggled and labelled as the trinket, not as whatever the ability that
+            # fired it happens to be called.
+            toggle = _trinket_toggle(item["id"])
             found.setdefault(
-                ability_id,
+                toggle,
                 {
-                    "id": ability_id,
-                    "name": ability_name or f"Trinket {ability_id}",
-                    "short": _short(ability_name),
-                    "icon": icon,
+                    "id": toggle,
+                    "name": item["name"] or f"Trinket {item['id']}",
+                    "short": _short(item["name"]),
+                    "icon": item["icon"],
                     "onByDefault": False,
                 },
             )
+            display_icon = item["icon"]
+        else:
+            toggle = ability_id
+            display_icon = icon
 
         casts.append(
             {
                 "spellId": ability_id,
+                # What the toggle row switches on. Differs from spellId only for
+                # trinkets, where several abilities share one item.
+                "toggle": toggle,
                 "t": round((float(event["timestamp"]) - start) / 1000.0, 1),
-                "name": ability_name,
-                "icon": icon,
+                "name": item["name"] if item is not None else ability_name,
+                "icon": display_icon,
             }
         )
 
@@ -322,6 +360,19 @@ async def _fight(
     }
 
 
+def _hero(spec_key: str, entry: dict) -> dict | None:
+    talent_ids = {t["talentID"] for t in (entry.get("talents") or []) if "talentID" in t}
+    tree = hero_tree_for(spec_key, talent_ids)
+    if tree is None:
+        return None
+    return {"name": tree.name, "icon": tree.icon, "short": _short(tree.name)}
+
+
+def _trinket_toggle(item_id: int) -> int:
+    """Trinket toggles live in negative ID space, where no spell ID can collide."""
+    return -item_id
+
+
 def _short(name: str) -> str:
     """A 2-3 character badge, the fallback when an icon will not load."""
     words = [w for w in name.replace("-", " ").split() if w[:1].isalnum()]
@@ -333,6 +384,11 @@ def _short(name: str) -> str:
 def _filter_expression(source_name: str) -> str:
     escaped = source_name.replace('"', '\\"')
     return f'source.name = "{escaped}"'
+
+
+def _report_url(code: str, fight_id: int, actor_id: int | None) -> str:
+    base = f"https://www.warcraftlogs.com/reports/{code}?fight={fight_id}"
+    return f"{base}&source={actor_id}" if actor_id is not None else base
 
 
 async def talents(code: str, fight_id: int, actor_id: int) -> str:

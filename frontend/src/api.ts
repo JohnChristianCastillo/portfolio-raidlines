@@ -50,7 +50,13 @@ export interface Zone {
 }
 
 export interface Cast {
+  /** The real spell, which is what the MRT export writes. */
   spellId: number;
+  /**
+   * What the toggle row switches on. Same as spellId except for trinkets, where
+   * several abilities belong to one item and share its toggle.
+   */
+  toggle: number;
   /** Seconds since the pull. */
   t: number;
   name: string;
@@ -78,6 +84,8 @@ export interface Player {
   actorId: number | null;
   /** The two trinkets they had equipped. */
   trinkets: Trinket[];
+  /** Hero talent tree. Null when it has not been named in spells.py. */
+  heroTree: { name: string; icon: string; short: string } | null;
   reportUrl: string;
   casts: Cast[];
 }

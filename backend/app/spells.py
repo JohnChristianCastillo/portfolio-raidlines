@@ -29,6 +29,23 @@ class Spell:
 
 
 @dataclass(frozen=True)
+class HeroTree:
+    """A hero talent tree, identified by one talent node.
+
+    node_id  a talent node only this tree grants. Verified discriminating when every
+             sampled player of the spec has exactly one of the trees' nodes and
+             never two. Find them with tools/herotrees.py.
+    name     display name, e.g. Deathstalker. Blank means unidentified, and nothing
+             is shown rather than something wrong.
+    icon     wowhead icon slug. Optional: with none, the name's initials are drawn.
+    """
+
+    node_id: int
+    name: str
+    icon: str = ""
+
+
+@dataclass(frozen=True)
 class SpellGroup:
     key: str
     label: str
@@ -93,6 +110,37 @@ SUBTLETY_ROGUE = [
 CATALOG: dict[str, list[SpellGroup]] = {
     "rogue-subtlety": SUBTLETY_ROGUE,
 }
+
+# Hero talent trees per spec. The node IDs below are mutually exclusive across 21
+# sampled Subtlety parses: every player had exactly one, never both and never
+# neither, which is what a hero tree choice looks like in the data.
+#
+# Across 100 heroic Nek'zali parses the split is 68/32, which is a real choice
+# rather than the 98/2 of an ordinary either/or talent node.
+#
+# TODO(owner): name these two. Warcraft Logs exposes the node but not its tree, and
+# the schema has no field for it, so the mapping cannot be read out of the API.
+# Open one player from each side and read off which tree they run:
+#   117703 (68/100), Опровержение:
+#     https://www.warcraftlogs.com/reports/RABFJvt6qfh9krgm?fight=1
+#   126029 (32/100), 十一月飞雪:
+#     https://www.warcraftlogs.com/reports/qKnWXPTwGrBz9fcj?fight=4
+# Re-derive at any time with: python tools/herotrees.py --encounter 3470
+# Until a name is filled in, no hero icon is drawn.
+HERO_TREES: dict[str, list[HeroTree]] = {
+    "rogue-subtlety": [
+        HeroTree(117703, ""),
+        HeroTree(126029, ""),
+    ],
+}
+
+
+def hero_tree_for(spec_key: str, talent_ids: set[int]) -> HeroTree | None:
+    """Which hero tree a player's talent list indicates, if it is a named one."""
+    for tree in HERO_TREES.get(spec_key, []):
+        if tree.node_id in talent_ids and tree.name:
+            return tree
+    return None
 
 # The className/specName pair the rankings query expects, per catalog key.
 SPEC_QUERY_NAMES: dict[str, tuple[str, str]] = {

@@ -357,6 +357,35 @@ code {
   flex: 0 0 auto;
 }
 
+/* The two trinkets they had equipped, so the row says what they brought at a glance. */
+.worn {
+  display: flex;
+  gap: 3px;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.worn .spell-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+}
+
+/* Hero talent tree: round, to distinguish it from the square trinkets beside it. */
+.hero {
+  display: inline-flex;
+  margin-left: 2px;
+  line-height: 0;
+}
+
+.hero .spell-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--line-bright);
+  font-size: 8px;
+}
+
 .cell-track {
   position: relative;
   flex: 1 1 auto;

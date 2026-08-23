@@ -23,7 +23,8 @@ MVP. Subtlety Rogue, one tier at a time, absolute-time reminder export.
 | Top 10 parses per boss and difficulty, cooldown timelines on one shared scale | Phase-relative MRT anchors (`{time:0:05,pg2}`) |
 | Per-group spell toggles, filtered client-side | Boss ability track above the player rows |
 | MRT reminder export, scoped to the toggled spells | Load an arbitrary log to compare yourself against |
-| Trinkets detected automatically from what the ranked players brought | Buff duration bars, rather than cast markers alone |
+| Trinkets detected automatically, labelled and toggled by item | Buff duration bars, rather than cast markers alone |
+| Equipped trinkets and hero tree shown per row | Naming the two hero talent trees (detection is done, see `HERO_TREES`) |
 | Talent loadout export, pasteable into the game | |
 | Offline fixture mode, so it runs with no API credentials at all | |
 
@@ -121,6 +122,7 @@ backend/
     make_demo_fixtures.py  synthetic offline demo data
     capture.py             record real responses as fixtures
     discover.py            list what a real parse actually cast, to curate spells.py
+    herotrees.py           find the talent node that separates two hero trees
 frontend/
   src/
     api.ts               backend types and calls

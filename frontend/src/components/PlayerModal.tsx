@@ -39,7 +39,7 @@ export default function PlayerModal({
   }, [player, enabled, encounterName, difficultyName]);
 
   const lineCount = useMemo(
-    () => player.casts.filter((c) => enabled.has(c.spellId)).length,
+    () => player.casts.filter((c) => enabled.has(c.toggle)).length,
     [player, enabled],
   );
 

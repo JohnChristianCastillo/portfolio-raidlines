@@ -84,7 +84,7 @@ export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
       </div>
 
       {players.map((player) => {
-        const casts = player.casts.filter((c) => enabled.has(c.spellId));
+        const casts = player.casts.filter((c) => enabled.has(c.toggle));
         return (
           <div className="timeline-row" key={`${player.reportCode}-${player.fightId}`}>
             <button
@@ -97,6 +97,27 @@ export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
               <span className="player-name">{player.name}</span>
               <span className="amount">
                 {(player.amount / 1000).toFixed(1)}k
+              </span>
+              <span className="worn">
+                {player.trinkets.map((t) => (
+                  <SpellIcon
+                    key={t.id}
+                    icon={t.icon}
+                    short={t.name.slice(0, 2)}
+                    alt={t.name}
+                  />
+                ))}
+                {player.heroTree && (
+                  // Round, so it reads as a different kind of thing from the
+                  // square trinkets sitting next to it.
+                  <span className="hero" title={player.heroTree.name}>
+                    <SpellIcon
+                      icon={player.heroTree.icon}
+                      short={player.heroTree.short}
+                      alt={player.heroTree.name}
+                    />
+                  </span>
+                )}
               </span>
             </button>
 
@@ -121,14 +142,14 @@ export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
                     className="cast"
                     style={{
                       left: pct(cast.t),
-                      borderColor: colorOf.get(cast.spellId) ?? "#888",
+                      borderColor: colorOf.get(cast.toggle) ?? "#888",
                     }}
-                    title={`${cast.name || shortOf.get(cast.spellId) || cast.spellId} at ${formatTime(cast.t)}`}
+                    title={`${cast.name || shortOf.get(cast.toggle) || cast.spellId} at ${formatTime(cast.t)}`}
                     onClick={() => onPlayer(player)}
                   >
                     <SpellIcon
                       icon={cast.icon}
-                      short={shortOf.get(cast.spellId) ?? "?"}
+                      short={shortOf.get(cast.toggle) ?? "?"}
                       alt={cast.name}
                     />
                     <span className="cast-time">{formatTime(cast.t).slice(0, 5)}</span>

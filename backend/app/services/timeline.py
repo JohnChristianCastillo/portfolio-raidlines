@@ -33,13 +33,7 @@ import asyncio
 import logging
 
 from ..config import settings
-from ..spells import (
-    SPEC_LABELS,
-    SPEC_QUERY_NAMES,
-    groups_for,
-    hero_tree_for,
-    spell_index,
-)
+from ..spells import groups_for, hero_tree_for, spec_for, spell_index
 from ..wcl import client, queries
 from .catalog import DIFFICULTY_BY_ID
 
@@ -79,21 +73,19 @@ def _norm_icon(icon: str) -> str:
 
 async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
     """The one call the API layer makes. Returns a fully rendered timeline payload."""
-    if spec_key not in SPEC_QUERY_NAMES:
+    spec = spec_for(spec_key)
+    if spec is None:
         raise UnknownSpec(f"unknown spec {spec_key!r}")
 
-    class_name, spec_name = SPEC_QUERY_NAMES[spec_key]
     warnings: list[str] = []
 
-    rankings, encounter_name = await _rankings(
-        encounter_id, difficulty, class_name, spec_name
-    )
+    rankings, encounter_name = await _rankings(encounter_id, difficulty, spec)
     rankings = rankings[: settings.top_n]
 
     if not rankings:
         warnings.append(
-            f"Warcraft Logs has no ranked {spec_name} {class_name} parses for this "
-            "boss and difficulty yet."
+            f"Warcraft Logs has no ranked {spec.label} parses for this boss and "
+            "difficulty yet."
         )
 
     catalog = spell_index(spec_key)
@@ -132,7 +124,7 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
         "difficulty": DIFFICULTY_BY_ID.get(
             difficulty, {"id": difficulty, "name": str(difficulty), "short": "?"}
         ),
-        "spec": {"key": spec_key, "label": SPEC_LABELS.get(spec_key, spec_key)},
+        "spec": {"key": spec.key, "label": spec.label, "role": spec.role},
         "maxDuration": max_duration,
         "players": kept,
         # The catalog groups, with the discovered ones filled in from this board.
@@ -171,13 +163,16 @@ def _groups(spec_key: str, discovered: dict[str, dict[int, dict]]) -> list[dict]
 
 
 async def _rankings(
-    encounter_id: int, difficulty: int, class_name: str, spec_name: str
+    encounter_id: int, difficulty: int, spec
 ) -> tuple[list[dict], str]:
     variables = {
         "encounterId": encounter_id,
         "difficulty": difficulty,
-        "className": class_name,
-        "specName": spec_name,
+        "className": spec.class_name,
+        "specName": spec.spec_name,
+        # Healers rank by healing. Asking for the top Preservation Evokers by damage
+        # would return a real list of the wrong people.
+        "metric": spec.metric,
         "page": 1,
     }
     data = await client.graphql(

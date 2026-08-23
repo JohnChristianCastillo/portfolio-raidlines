@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from app.config import settings  # noqa: E402
-from app.spells import SPEC_QUERY_NAMES, spell_ids_for  # noqa: E402
+from app.spells import spec_for  # noqa: E402
 from app.services import timeline  # noqa: E402
 from app.wcl import client, queries  # noqa: E402
 
@@ -35,7 +35,9 @@ FIXTURES = Path(__file__).resolve().parent.parent / "app" / "fixtures"
 
 
 async def capture(encounter: int, difficulty: int, spec_key: str, top_n: int) -> None:
-    class_name, spec_name = SPEC_QUERY_NAMES[spec_key]
+    spec = spec_for(spec_key)
+    if spec is None:
+        raise SystemExit(f"unknown spec {spec_key!r}")
 
     zones_data = await client.graphql(
         queries.ZONES, {}, cache_kind="zones", cache_ttl=settings.catalog_ttl_seconds
@@ -45,8 +47,9 @@ async def capture(encounter: int, difficulty: int, spec_key: str, top_n: int) ->
     ranking_vars = {
         "encounterId": encounter,
         "difficulty": difficulty,
-        "className": class_name,
-        "specName": spec_name,
+        "className": spec.class_name,
+        "specName": spec.spec_name,
+        "metric": spec.metric,
         "page": 1,
     }
     rankings_data = await client.graphql(
@@ -62,7 +65,6 @@ async def capture(encounter: int, difficulty: int, spec_key: str, top_n: int) ->
     ).get("characterRankings") or {}
     rankings = payload if isinstance(payload, list) else payload.get("rankings") or []
 
-    tracked = spell_ids_for(spec_key)
     for entry in rankings[:top_n]:
         report = entry.get("report") or {}
         code, fight_id = report.get("code"), report.get("fightID")
@@ -71,7 +73,7 @@ async def capture(encounter: int, difficulty: int, spec_key: str, top_n: int) ->
         fight_vars = {
             "code": code,
             "fightId": int(fight_id),
-            "filter": timeline._filter_expression(entry.get("name", ""), tracked),
+            "filter": timeline._filter_expression(entry.get("name", "")),
         }
         try:
             fight_data = await client.graphql(

@@ -62,7 +62,7 @@ class SpellGroup:
 
 
 # --- Subtlety Rogue -----------------------------------------------------------------
-# A second spec is a second entry in CATALOG, nothing else.
+# A second spec is a second entry in SPECS, nothing else.
 
 SUBTLETY_ROGUE = [
     SpellGroup(
@@ -107,11 +107,47 @@ SUBTLETY_ROGUE = [
 ]
 
 
-CATALOG: dict[str, list[SpellGroup]] = {
-    "rogue-subtlety": SUBTLETY_ROGUE,
-}
+# --- the spec registry ----------------------------------------------------------
+#
+# One entry per spec. Three parallel dicts did the job while there was one spec;
+# with the roster to come, everything a spec needs lives in one place.
 
-# Hero talent trees per spec, keyed by the entry ID of each tree's root node.
+@dataclass(frozen=True)
+class Spec:
+    """A playable specialisation Raidline can draw a board for.
+
+    key         our slug, used in URLs and as the catalog key
+    label       display name, singular
+    class_name  className as the Warcraft Logs rankings query spells it
+    spec_name   specName, likewise
+    spec_id     Blizzard playable-specialization ID. Warcraft Logs reports it as
+                specID in combatantInfo, and it is what the spec icon is fetched by
+    role        dps, healer or tank. Decides the ranking metric, see below
+    groups      the tracked-spell catalog for this spec
+    hero_trees  the two hero talent trees, by root node entry ID
+    """
+
+    key: str
+    label: str
+    class_name: str
+    spec_name: str
+    spec_id: int
+    role: str
+    groups: list[SpellGroup] = field(default_factory=list)
+    hero_trees: list[HeroTree] = field(default_factory=list)
+
+    @property
+    def metric(self) -> str:
+        """What Warcraft Logs should rank this spec by.
+
+        Healers are ranked by healing, not damage: the top twenty Preservation
+        Evokers by DPS would be a meaningless list. Tanks stay on dps, which is how
+        Warcraft Logs itself ranks them.
+        """
+        return "hps" if self.role == "healer" else "dps"
+
+
+# Hero talent trees are keyed by the entry ID of each tree's root node.
 #
 # These cannot be derived from the API: Warcraft Logs reports which talent entries a
 # player took but never which tree they belong to, and the schema has no field for
@@ -120,41 +156,47 @@ CATALOG: dict[str, list[SpellGroup]] = {
 # choice instead, because a hero tree is not necessarily a close-run thing: every one
 # of 232 sampled Subtlety parses runs Deathstalker.
 #
-# So they are read off the game's talent pane by hand. For a new spec, find the two
-# root nodes of the middle tree and take their entry IDs. tools/herotrees.py checks
-# a configured pair against live parses and reports anything it fails to classify.
-#
-# TODO(owner): icon slugs, if the initials badge is not good enough.
-HERO_TREES: dict[str, list[HeroTree]] = {
-    "rogue-subtlety": [
-        # root node Deathstalker's Mark (node 95137, spell 467052)
-        HeroTree(117733, "Deathstalker", short="DS"),
-        # root node Unseen Blade (node 95140, spell 441146)
-        HeroTree(117737, "Trickster", short="TR"),
-    ],
+# So they are read off the game's talent pane by hand: the middle of the three trees
+# is the hero tree, and the entry ID of each of its two root nodes names it.
+# tools/herotrees.py checks a configured pair against live parses.
+
+SPECS: dict[str, Spec] = {
+    "rogue-subtlety": Spec(
+        key="rogue-subtlety",
+        label="Subtlety Rogue",
+        class_name="Rogue",
+        spec_name="Subtlety",
+        spec_id=261,
+        role="dps",
+        groups=SUBTLETY_ROGUE,
+        hero_trees=[
+            # root node Deathstalker's Mark (node 95137, spell 467052)
+            HeroTree(117733, "Deathstalker", short="DS"),
+            # root node Unseen Blade (node 95140, spell 441146)
+            HeroTree(117737, "Trickster", short="TR"),
+        ],
+    ),
 }
+
+
+def spec_for(spec_key: str) -> Spec | None:
+    return SPECS.get(spec_key)
 
 
 def hero_tree_for(spec_key: str, talent_ids: set[int]) -> HeroTree | None:
     """Which hero tree a player's talent list indicates, if it is a named one."""
-    for tree in HERO_TREES.get(spec_key, []):
+    spec = SPECS.get(spec_key)
+    if spec is None:
+        return None
+    for tree in spec.hero_trees:
         if tree.entry_id in talent_ids and tree.name:
             return tree
     return None
 
-# The className/specName pair the rankings query expects, per catalog key.
-SPEC_QUERY_NAMES: dict[str, tuple[str, str]] = {
-    "rogue-subtlety": ("Rogue", "Subtlety"),
-}
-
-# Singular, always, even though the page shows ten of them.
-SPEC_LABELS: dict[str, str] = {
-    "rogue-subtlety": "Subtlety Rogue",
-}
-
 
 def groups_for(spec_key: str) -> list[SpellGroup]:
-    return CATALOG.get(spec_key, [])
+    spec = SPECS.get(spec_key)
+    return spec.groups if spec else []
 
 
 def spells_for(spec_key: str) -> list[Spell]:

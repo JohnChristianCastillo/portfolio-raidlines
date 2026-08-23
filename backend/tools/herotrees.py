@@ -2,7 +2,7 @@
 
     python tools/herotrees.py --encounter 3470 --difficulty 4
 
-Reports how the sampled parses split between the trees in HERO_TREES, and flags any
+Reports how the sampled parses split between a spec's hero trees, and flags any
 parse it cannot classify. An unclassified parse means the entry IDs have gone stale,
 which is what happens when a patch rebuilds a talent tree.
 
@@ -16,7 +16,7 @@ an ordinary talent node split 68/32 and looked exactly like one.
 
 The trees have to be read off the game's talent pane instead. The middle of the
 three trees is the hero tree; take the entry ID of each of its two root nodes and
-put them in HERO_TREES. Entry ID, not node ID and not spell ID: a ranking's talents
+put them in the spec's hero_trees. Entry ID, not node ID nor spell ID: a ranking's talents
 list carries entry IDs.
 
 Costs nothing beyond the rankings query: talents come free with includeCombatantInfo.
@@ -33,19 +33,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from app.config import settings  # noqa: E402
-from app.spells import HERO_TREES, SPEC_QUERY_NAMES  # noqa: E402
+from app.spells import spec_for  # noqa: E402
 from app.wcl import client, queries  # noqa: E402
 
 
 async def sample(encounter: int, difficulty: int, spec_key: str) -> list[tuple]:
-    class_name, spec_name = SPEC_QUERY_NAMES[spec_key]
+    spec = spec_for(spec_key)
+    if spec is None:
+        raise SystemExit(f"unknown spec {spec_key!r}")
     data = await client.graphql(
         queries.RANKINGS,
         {
             "encounterId": encounter,
             "difficulty": difficulty,
-            "className": class_name,
-            "specName": spec_name,
+            "className": spec.class_name,
+            "specName": spec.spec_name,
+            "metric": spec.metric,
             "page": 1,
         },
         cache_kind="rankings",
@@ -65,7 +68,8 @@ async def sample(encounter: int, difficulty: int, spec_key: str) -> list[tuple]:
 
 
 async def main_async(args) -> None:
-    trees = HERO_TREES.get(args.spec, [])
+    spec = spec_for(args.spec)
+    trees = spec.hero_trees if spec else []
     if not trees:
         raise SystemExit(f"no hero trees configured for {args.spec} in app/spells.py")
 
@@ -100,7 +104,7 @@ async def main_async(args) -> None:
 
     if unclassified:
         print(f"\n{len(unclassified)} parses matched NO tree. Either a tree is missing")
-        print("from HERO_TREES, or a patch has changed the entry IDs:")
+        print("from the spec's hero_trees, or a patch has changed the entry IDs:")
         for name, report in unclassified[:5]:
             code, fight = report.get("code"), report.get("fightID")
             print(f"   {name}: https://www.warcraftlogs.com/reports/{code}?fight={fight}")

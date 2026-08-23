@@ -13,7 +13,7 @@ data of its own, so every surface is readable by any admitted session.
 from fastapi import APIRouter, HTTPException, Query
 
 from ..config import settings
-from ..spells import CATALOG, SPEC_LABELS, groups_for
+from ..spells import SPECS, groups_for
 from ..services import catalog, timeline
 from ..wcl import client
 
@@ -32,7 +32,8 @@ def meta() -> dict:
         "specs": [
             {
                 "key": key,
-                "label": SPEC_LABELS.get(key, key),
+                "label": spec.label,
+                "role": spec.role,
                 "groups": [
                     {
                         "key": g.key,
@@ -52,7 +53,7 @@ def meta() -> dict:
                     for g in groups_for(key)
                 ],
             }
-            for key in CATALOG
+            for key, spec in SPECS.items()
         ],
     }
 

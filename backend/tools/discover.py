@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from app.config import settings  # noqa: E402
-from app.spells import SPEC_QUERY_NAMES, spell_index  # noqa: E402
+from app.spells import spec_for, spell_index  # noqa: E402
 from app.wcl import client, queries  # noqa: E402
 
 # Casts with no filter expression at all. Everything else in the app filters
@@ -59,14 +59,17 @@ POTION_WORDS = ("potion", "flask", "elixir", "healthstone", "phial")
 
 async def top_parse(encounter: int, difficulty: int, spec_key: str) -> tuple[str, int, str]:
     """The rank 1 parse's report, fight and player, so --encounter alone is enough."""
-    class_name, spec_name = SPEC_QUERY_NAMES[spec_key]
+    spec = spec_for(spec_key)
+    if spec is None:
+        raise SystemExit(f"unknown spec {spec_key!r}")
     data = await client.graphql(
         queries.RANKINGS,
         {
             "encounterId": encounter,
             "difficulty": difficulty,
-            "className": class_name,
-            "specName": spec_name,
+            "className": spec.class_name,
+            "specName": spec.spec_name,
+            "metric": spec.metric,
             "page": 1,
         },
         cache_kind="rankings",

@@ -40,6 +40,7 @@ query Rankings(
   $difficulty: Int!
   $className: String!
   $specName: String!
+  $metric: CharacterRankingMetricType!
   $page: Int
 ) {
   worldData {
@@ -50,7 +51,7 @@ query Rankings(
         difficulty: $difficulty
         className: $className
         specName: $specName
-        metric: dps
+        metric: $metric
         page: $page
         # Adds gear and talents to each ranking. Gear slots 12 and 13 are the
         # trinkets, which is where the trinket list comes from.

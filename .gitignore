@@ -1,0 +1,24 @@
+# Local planning notes, spec, screenshots and the API registration walkthrough.
+# Local only, never pushed.
+_local/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Credentials. The Warcraft Logs client ID and secret live here.
+backend/.env
+
+# Cached Warcraft Logs responses and the OAuth token.
+backend/data/
+
+# Recorded fixtures are real ranking data pulled from Warcraft Logs, so they are not
+# redistributed here. The generated offline demo set is, since it is synthetic:
+# regenerate it with `python tools/make_demo_fixtures.py`.
+backend/app/fixtures/*.json
+
+# Node
+node_modules/
+frontend/dist/
+*.tsbuildinfo

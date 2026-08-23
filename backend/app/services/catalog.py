@@ -46,8 +46,8 @@ async def zones() -> list[dict]:
 
     out: list[dict] = []
     expansions = (data.get("worldData") or {}).get("expansions") or []
-    for expansion in reversed(expansions):
-        for zone in reversed(expansion.get("zones") or []):
+    for expansion in expansions:
+        for zone in expansion.get("zones") or []:
             if not is_raid_zone(zone):
                 continue
             out.append(
@@ -55,6 +55,7 @@ async def zones() -> list[dict]:
                     "id": zone["id"],
                     "name": zone["name"],
                     "expansion": expansion.get("name", ""),
+                    "expansionId": expansion.get("id", 0),
                     # frozen means the tier is over and its rankings will not change.
                     "frozen": bool(zone.get("frozen")),
                     "encounters": [
@@ -63,4 +64,15 @@ async def zones() -> list[dict]:
                     ],
                 }
             )
+
+    # Sort explicitly rather than trusting the order the API happens to return.
+    # Reversing that order was wrong: it put a Mists of Pandaria tier at the top.
+    # Both IDs are assigned in release order, so descending is newest first, and it
+    # stays correct whichever way the API decides to hand the arrays over.
+    #
+    # Active tiers outrank frozen ones within an expansion, and that is not a nicety.
+    # Warcraft Logs can carry two zones for the same raid, one still open and one
+    # frozen with its own encounter IDs. Highest ID alone picked the frozen twin, so
+    # the app would have opened on a closed tier by default.
+    out.sort(key=lambda z: (z["expansionId"], not z["frozen"], z["id"]), reverse=True)
     return out

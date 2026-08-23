@@ -68,7 +68,14 @@ SUBTLETY_ROGUE = [
         spells=[
             Spell(121471, "Shadow Blades", "SB", "inv_knife_1h_grimbatolraid_d_03", on_by_default=True),
             Spell(185313, "Shadow Dance", "SD", "ability_rogue_shadowdance", on_by_default=True),
-            Spell(280719, "Secret Technique", "ST", "ability_rogue_secrettechnique"),
+            # 280719 is the cast. Logs also carry 282449 under the same name at
+            # roughly double the count, which is the clone strikes rather than the
+            # button press, so tracking it would draw every use twice.
+            Spell(280719, "Secret Technique", "ST", "ability_rogue_sinistercalling"),
+            # TODO(owner): neither of these was cast by any of the ten top Nek'zali
+            # Mythic parses. Either they are gone from the current build or nobody
+            # takes them. Harmless if wrong (an ID that matches nothing simply never
+            # draws) but they are two dead toggles until confirmed. Delete if gone.
             Spell(212283, "Symbols of Death", "SoD", "spell_shadow_rune"),
             Spell(381623, "Thistle Tea", "Tea", "inv_drink_milk_05"),
         ],
@@ -78,17 +85,23 @@ SUBTLETY_ROGUE = [
         label="Potions",
         color="#3fb950",
         spells=[
-            # TODO(owner): the offensive potions of the active season, starting with
-            # Potion of Recklessness.
-            #
-            # Do not type these IDs from memory. A wrong potion ID does not error, it
-            # silently matches nothing and leaves a toggle that draws an empty row
-            # forever. Read them off a real log instead:
+            # ID and icon read off a real Nek'zali Mythic parse, not typed from
+            # memory. A wrong potion ID does not error, it silently matches nothing
+            # and leaves a toggle that draws an empty row forever, so they get
+            # verified before they go in here:
             #
             #   python tools/discover.py --encounter <boss id> --difficulty 5
             #
             # which prints every ability the top parse actually cast, as catalog
-            # lines ready to paste in here.
+            # lines ready to paste in.
+            Spell(
+                1236994,
+                "Potion of Recklessness",
+                "POR",
+                "inv_12_profession_alchemy_voidpotion_red",
+                on_by_default=True,
+            ),
+            # TODO(owner): any other offensive potions of the active season.
         ],
     ),
     SpellGroup(

@@ -22,6 +22,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# Same reason as in discover.py: player names are often not Latin-1 and the Windows
+# console is cp1252 by default.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from app.config import settings  # noqa: E402
 from app.spells import SPEC_QUERY_NAMES, spell_ids_for  # noqa: E402
 from app.services import timeline  # noqa: E402

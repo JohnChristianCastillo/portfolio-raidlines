@@ -23,6 +23,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# Player and ability names are routinely Korean, Chinese or accented, and the Windows
+# console defaults to cp1252, which cannot encode them. Without this the tool dies on
+# a UnicodeEncodeError while printing a name, which is a silly way to lose a query
+# that has already been paid for out of the point budget.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from app.config import settings  # noqa: E402
 from app.spells import SPEC_QUERY_NAMES, spell_index  # noqa: E402
 from app.wcl import client, queries  # noqa: E402

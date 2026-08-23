@@ -50,6 +50,7 @@ export interface Zone {
   id: number;
   name: string;
   expansion: string;
+  expansionId: number;
   frozen: boolean;
   encounters: Encounter[];
 }

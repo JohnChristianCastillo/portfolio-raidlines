@@ -14,6 +14,18 @@ import { useEffect, useState } from "react";
 
 const CDN = "https://wow.zamimg.com/images/wow/icons/medium";
 
+/**
+ * Icon slugs arrive in two forms and only one of them has an extension: the catalog
+ * in spells.py stores "ability_rogue_shadowdance", while a report's masterData gives
+ * "ability_rogue_shadowdance.jpg". Appending .jpg blindly produced a .jpg.jpg URL
+ * that 404s, so every live icon quietly degraded to a text badge while fixtures
+ * looked fine. Normalise to the bare slug and add the extension once.
+ */
+function iconUrl(icon: string): string {
+  const slug = icon.replace(/\.(jpg|jpeg|png|gif|webp)$/i, "");
+  return `${CDN}/${slug}.jpg`;
+}
+
 interface Props {
   icon: string;
   short: string;
@@ -38,7 +50,7 @@ export default function SpellIcon({ icon, short, alt }: Props) {
   return (
     <img
       className="spell-icon"
-      src={`${CDN}/${icon}.jpg`}
+      src={iconUrl(icon)}
       alt={alt}
       loading="lazy"
       onError={() => setFailed(true)}

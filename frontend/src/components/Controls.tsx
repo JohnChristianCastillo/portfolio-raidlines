@@ -5,6 +5,7 @@
  */
 
 import type { Difficulty, Encounter, Spec, Zone } from "../api";
+import SpecPicker from "./SpecPicker";
 
 interface Props {
   zones: Zone[];
@@ -75,20 +76,7 @@ export default function Controls({
         </div>
       </div>
 
-      <div className="control-group">
-        <span className="control-label">Spec</span>
-        <select
-          className="select"
-          value={specKey}
-          onChange={(e) => onSpec(e.target.value)}
-        >
-          {specs.map((spec) => (
-            <option key={spec.key} value={spec.key}>
-              {spec.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SpecPicker specs={specs} specKey={specKey} onSpec={onSpec} />
 
       <div className="control-group control-group--wide">
         <span className="control-label">Boss</span>

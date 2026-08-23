@@ -34,6 +34,10 @@ def meta() -> dict:
                 "key": key,
                 "label": spec.label,
                 "role": spec.role,
+                # Asset keys, so the picker can draw the class emblem and spec icon.
+                "classKey": spec.class_key,
+                "className": spec.class_name,
+                "specId": spec.spec_id,
                 "groups": [
                     {
                         "key": g.key,

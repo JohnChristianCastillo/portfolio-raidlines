@@ -9,6 +9,7 @@ skipped when the file already exists, making a re-run nearly free.
 
 Two shapes, and the difference is deliberate:
 
+  classes/<class>.png  square, the class emblem, for the class picker
   specs/<specId>.jpg   square, Blizzard's own specialisation icon
   hero/<tree-slug>.png round in the UI, the hero talent tree's own art
 
@@ -50,7 +51,8 @@ ICON_CDN = "https://wow.zamimg.com/images/wow/icons/large"
 # Hero talent tree art. A MediaWiki API, so this is a documented public interface
 # rather than page scraping, and it is polite to identify ourselves.
 WIKI_API = "https://warcraft.wiki.gg/api.php"
-WIKI_CATEGORY = "Category:WoW_Icons:_Pseudo_TalentFrame"
+WIKI_HERO_CATEGORY = "Category:WoW_Icons:_Pseudo_TalentFrame"
+WIKI_CLASS_CATEGORY = "Category:Class_icons"
 USER_AGENT = "Raidlines/0.1 (personal, non-commercial fan project)"
 
 
@@ -60,14 +62,14 @@ def slugify(name: str) -> str:
     return "-".join(filter(None, "".join(out).split("-")))
 
 
-def wiki_hero_icons() -> dict[str, str]:
-    """Every hero talent icon the wiki has, keyed by its normalised tree name."""
+def wiki_files(category: str) -> dict[str, str]:
+    """Every file in a wiki category, as {title: url}."""
     response = httpx.get(
         WIKI_API,
         params={
             "action": "query",
             "generator": "categorymembers",
-            "gcmtitle": WIKI_CATEGORY,
+            "gcmtitle": category,
             "gcmlimit": "500",
             "gcmtype": "file",
             "prop": "imageinfo",
@@ -78,18 +80,63 @@ def wiki_hero_icons() -> dict[str, str]:
         timeout=30,
     )
     response.raise_for_status()
-    icons = {}
+    out = {}
     for page in ((response.json().get("query") or {}).get("pages") or {}).values():
-        title = page.get("title", "")
-        info = (page.get("imageinfo") or [{}])[0]
-        url = info.get("url")
-        if not url:
-            continue
+        url = (page.get("imageinfo") or [{}])[0].get("url")
+        if url:
+            out[page.get("title", "")] = url
+    return out
+
+
+def _squash(text: str) -> str:
+    return "".join(c for c in text.lower() if c.isalnum())
+
+
+def wiki_hero_icons() -> dict[str, str]:
+    """Hero talent icons, keyed by squashed tree name."""
+    icons = {}
+    for title, url in wiki_files(WIKI_HERO_CATEGORY).items():
         # "File:Hero talent mountain thane.png" -> "mountainthane"
         stem = title.removeprefix("File:").removesuffix(".png")
-        stem = stem.removeprefix("Hero talent ").strip()
-        icons["".join(c for c in stem.lower() if c.isalnum())] = url
+        icons[_squash(stem.removeprefix("Hero talent ").strip())] = url
     return icons
+
+
+def wiki_class_icons() -> dict[str, str]:
+    """Class emblems, keyed by squashed class name.
+
+    Only the "ClassIcon <name>.png" files. The category also holds legacy 38px GIFs
+    from an older interface, which are the wrong art at the wrong size.
+    """
+    icons = {}
+    for title, url in wiki_files(WIKI_CLASS_CATEGORY).items():
+        stem = title.removeprefix("File:")
+        if not stem.startswith("ClassIcon ") or not stem.endswith(".png"):
+            continue
+        icons[_squash(stem.removeprefix("ClassIcon ").removesuffix(".png"))] = url
+    return icons
+
+
+def fetch_class_icons(blizzard: Client) -> list[dict]:
+    """One emblem per playable class, for the class picker."""
+    wiki = wiki_class_icons()
+    seen: dict[str, str] = {}
+    for entry in blizzard.specializations():
+        detail = blizzard.specialization(entry["id"]) or {}
+        name = (detail.get("playable_class") or {}).get("name")
+        if name:
+            seen[_squash(name)] = name
+
+    manifest = []
+    for key, name in sorted(seen.items()):
+        url = wiki.get(key)
+        if not url:
+            print(f"  {name:<16} no wiki icon")
+            continue
+        fetched = _download(url, ASSETS / "classes" / f"{key}.png")
+        manifest.append({"key": key, "name": name, "icon": f"classes/{key}.png"})
+        print(f"  {name:<16} {'fetched' if fetched else 'cached'}")
+    return manifest
 
 
 def fetch_spec_icons(blizzard: Client) -> list[dict]:
@@ -193,9 +240,12 @@ def main() -> None:
     try:
         with Client() as blizzard:
             specs: list[dict] = []
+            classes: list[dict] = []
             if not args.skip_specs:
                 print("specialisation icons (square):")
                 specs = fetch_spec_icons(blizzard)
+                print("\nclass emblems, from warcraft.wiki.gg:")
+                classes = fetch_class_icons(blizzard)
             print("\nhero talent icons (round), from warcraft.wiki.gg:")
             heroes = fetch_hero_icons(blizzard)
     except BlizzardError as exc:
@@ -207,7 +257,11 @@ def main() -> None:
         # Keep the spec half of an existing manifest when only heroes were refreshed.
         specs = json.loads(manifest.read_text(encoding="utf-8")).get("specs", [])
     manifest.write_text(
-        json.dumps({"specs": specs, "heroTrees": heroes}, ensure_ascii=False, indent=1),
+        json.dumps(
+            {"classes": classes, "specs": specs, "heroTrees": heroes},
+            ensure_ascii=False,
+            indent=1,
+        ),
         encoding="utf-8",
     )
 

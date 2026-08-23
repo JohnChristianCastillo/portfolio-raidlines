@@ -183,6 +183,51 @@ code {
   font-weight: 600;
 }
 
+/* Class and spec pickers: the art is the control, so the button is just a frame. */
+.icon-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.icon-button {
+  padding: 2px;
+  background: var(--bg-raised);
+  border: 2px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+  line-height: 0;
+  /* Unselected classes stay legible but clearly inactive, matching the spell
+     toggles so the two rows read as the same kind of control. */
+  filter: grayscale(1) brightness(0.6);
+}
+
+.icon-button:hover {
+  filter: none;
+  border-color: var(--line-bright);
+}
+
+.icon-button.is-on {
+  filter: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.asset {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  display: block;
+}
+
+.asset--missing {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  display: block;
+  background: var(--bg-sunken);
+}
+
 /* --- spell toggles ---------------------------------------------------------- */
 
 .toggle-group {

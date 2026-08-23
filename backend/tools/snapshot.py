@@ -185,6 +185,7 @@ async def run(args) -> None:
                 "specId": spec.spec_id,
                 "role": spec.role,
                 "className": spec.class_name,
+                "classKey": spec.class_key,
                 "groups": [
                     {"key": g.key, "label": g.label, "color": g.color}
                     for g in spec.groups

@@ -1,4 +1,71 @@
 {
+ "classes": [
+  {
+   "key": "deathknight",
+   "name": "Death Knight",
+   "icon": "classes/deathknight.png"
+  },
+  {
+   "key": "demonhunter",
+   "name": "Demon Hunter",
+   "icon": "classes/demonhunter.png"
+  },
+  {
+   "key": "druid",
+   "name": "Druid",
+   "icon": "classes/druid.png"
+  },
+  {
+   "key": "evoker",
+   "name": "Evoker",
+   "icon": "classes/evoker.png"
+  },
+  {
+   "key": "hunter",
+   "name": "Hunter",
+   "icon": "classes/hunter.png"
+  },
+  {
+   "key": "mage",
+   "name": "Mage",
+   "icon": "classes/mage.png"
+  },
+  {
+   "key": "monk",
+   "name": "Monk",
+   "icon": "classes/monk.png"
+  },
+  {
+   "key": "paladin",
+   "name": "Paladin",
+   "icon": "classes/paladin.png"
+  },
+  {
+   "key": "priest",
+   "name": "Priest",
+   "icon": "classes/priest.png"
+  },
+  {
+   "key": "rogue",
+   "name": "Rogue",
+   "icon": "classes/rogue.png"
+  },
+  {
+   "key": "shaman",
+   "name": "Shaman",
+   "icon": "classes/shaman.png"
+  },
+  {
+   "key": "warlock",
+   "name": "Warlock",
+   "icon": "classes/warlock.png"
+  },
+  {
+   "key": "warrior",
+   "name": "Warrior",
+   "icon": "classes/warrior.png"
+  }
+ ],
  "specs": [
   {
    "id": 62,

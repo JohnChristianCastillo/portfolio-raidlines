@@ -18,6 +18,12 @@ export interface SpellGroup {
 export interface Spec {
   key: string;
   label: string;
+  role: string;
+  /** Squashed class name, which is also the class emblem's filename. */
+  classKey: string;
+  className: string;
+  /** Blizzard specialization ID, which is also the spec icon's filename. */
+  specId: number;
   groups: SpellGroup[];
 }
 

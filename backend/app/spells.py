@@ -91,6 +91,16 @@ class Spec:
     hero_trees: list[HeroTree] = field(default_factory=list)
 
     @property
+    def class_key(self) -> str:
+        """Squashed class name, which is also its icon filename.
+
+        Warcraft Logs writes DeathKnight and Blizzard writes Death Knight; squashing
+        both to deathknight makes them the same key, which is what the class emblem
+        is saved as.
+        """
+        return "".join(c for c in self.class_name.lower() if c.isalnum())
+
+    @property
     def metric(self) -> str:
         """What Warcraft Logs should rank this spec by.
 

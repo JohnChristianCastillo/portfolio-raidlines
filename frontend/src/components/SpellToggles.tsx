@@ -1,13 +1,7 @@
 /**
- * The second row: which spells are drawn.
- *
- * Grouped by importance, in the order the catalog declares (defensives, main
- * abilities, potions, trinkets). A group header doubles as a select-all / clear-all,
- * because turning on every defensive at once is the common move and eight clicks for
- * it would be silly.
- *
- * Toggling filters data the browser already holds. Every tracked spell was fetched
- * when the boss was chosen, so this never waits on the network.
+ * Which spells are drawn, grouped by importance. A group header is a
+ * select-all / clear-all. Toggling filters data already held, so it never waits
+ * on the network.
  */
 
 import type { SpellGroup } from "../api";

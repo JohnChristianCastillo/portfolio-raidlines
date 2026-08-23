@@ -1,15 +1,7 @@
 /**
- * The board: one row per parse, two columns, name and timeline.
- *
- * Every row shares one horizontal scale, running from the pull to the longest kill
- * on the page. That is the whole point of the thing: ten logs of different lengths
- * only become comparable once they are drawn against the same ruler. A row whose own
- * kill was faster stops early and the remainder is dimmed, so a short row reads as
- * "killed it sooner" rather than "stopped pressing buttons".
- *
- * Markers overlap when cooldowns cluster. That is expected and the spec says so
- * outright; hovering lifts one out of the pile rather than the layout trying to
- * spread them and lying about when things happened.
+ * One row per parse: name, then timeline. Every row shares one scale, running to
+ * the longest kill on the page, which is what makes ten logs comparable. A faster
+ * kill stops early and the remainder is dimmed.
  */
 
 import type { Player, Spec, Timelines } from "../api";
@@ -23,7 +15,7 @@ interface Props {
   onPlayer: (player: Player) => void;
 }
 
-/** Ruler ticks: aim for roughly a dozen, on a round interval. */
+/** Roughly a dozen ticks, on a round interval. */
 function tickInterval(duration: number): number {
   for (const candidate of [15, 30, 60, 120, 300]) {
     if (duration / candidate <= 14) return candidate;
@@ -34,8 +26,7 @@ function tickInterval(duration: number): number {
 export default function Timeline({ data, spec, enabled, onPlayer }: Props) {
   const { maxDuration, players, warnings } = data;
 
-  // Spell colour comes from its catalog group, so a defensive is the same blue on
-  // the timeline as on its toggle.
+  // Colour by catalog group, matching the toggles.
   const colorOf = new Map<number, string>();
   const shortOf = new Map<number, string>();
   for (const group of spec?.groups ?? []) {
@@ -125,8 +116,7 @@ export default function Timeline({ data, spec, enabled, onPlayer }: Props) {
                 {casts.map((cast, index) => (
                   <button
                     type="button"
-                    // Two casts can share a spell and a timestamp after rounding, so
-                    // the index is part of the key.
+                    // Rounding can collide, hence the index in the key.
                     key={`${cast.spellId}-${cast.t}-${index}`}
                     className="cast"
                     style={{

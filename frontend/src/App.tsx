@@ -1,10 +1,6 @@
 /**
- * The whole app: pick a tier, difficulty and boss, then read ten timelines.
- *
- * State lives here because every piece of it is shared. The one rule the spec is
- * strict about is enforced in one place, below: nothing is drawn until a difficulty
- * AND a boss AND a spec are all chosen, because until then there is no single
- * timeline the page could honestly be showing.
+ * Pick a tier, difficulty, boss and spec, then read ten timelines. Nothing renders
+ * until all four are set.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -46,7 +42,7 @@ export default function App() {
       .then(([m, z]) => {
         setMeta(m);
         setZones(z);
-        // Newest tier first, so the default is the one being progressed now.
+        // Newest tier first.
         if (z.length > 0) setZoneId(z[0].id);
       })
       .catch((e: Error) => setBootError(e.message));
@@ -57,8 +53,7 @@ export default function App() {
     [meta, specKey],
   );
 
-  // Seed the toggles from the catalog's defaults whenever the spec changes. Doing it
-  // here rather than in SpellToggles keeps the toggle component free of state.
+  // Seed toggles from the catalog defaults on every spec change.
   useEffect(() => {
     if (!spec) return;
     const defaults = spec.groups
@@ -91,8 +86,7 @@ export default function App() {
     setError("");
     fetchTimelines(encounterId!, difficultyId!, specKey)
       .then((data) => {
-        // A slow request for a boss the user has already navigated away from must
-        // not overwrite the one they are now looking at.
+        // A slow reply must not overwrite a boss the user has since moved off.
         if (!cancelled) setTimelines(data);
       })
       .catch((e: Error) => {
@@ -134,9 +128,6 @@ export default function App() {
       <div className="boot-error">
         <h1>Raidline</h1>
         <p>Could not reach the backend: {bootError}</p>
-        <p className="hint">
-          Is it running? <code>uvicorn app.main:app --port 8600</code>
-        </p>
       </div>
     );
   }
@@ -160,10 +151,7 @@ export default function App() {
           )}
         </h1>
         {!meta.live && (
-          <p className="fixture-banner">
-            Offline demo data. These are generated fixtures, not real rankings. Add
-            Warcraft Logs credentials to <code>backend/.env</code> for live parses.
-          </p>
+          <p className="fixture-banner">Demo data, not live rankings.</p>
         )}
       </header>
 
@@ -193,10 +181,7 @@ export default function App() {
 
       <main className="board">
         {!ready && (
-          <p className="placeholder">
-            Choose a difficulty and a boss above. Nothing is shown until both are
-            set, since there would be no single timeline to show.
-          </p>
+          <p className="placeholder">Pick a difficulty and a boss.</p>
         )}
         {ready && loading && <p className="placeholder">Reading logs...</p>}
         {ready && error && <p className="error">{error}</p>}

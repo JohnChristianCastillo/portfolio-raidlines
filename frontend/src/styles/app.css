@@ -1,13 +1,8 @@
 /*
- * Raidline styling.
+ * Raidline styling. Dark only, to sit beside the game and Warcraft Logs.
  *
- * Dark by default and not theme-switchable: this is read next to the game and next
- * to Warcraft Logs, both of which are dark, and a white page between them is
- * genuinely unpleasant at 1am on a raid night.
- *
- * The timeline is absolutely positioned inside a percentage-width track. Percentages
- * rather than pixels so the board reflows with the window without recomputing
- * anything in JavaScript, and so one scale can be shared by every row.
+ * The timeline positions markers by percentage inside the track, so the board
+ * reflows with the window and every row shares one scale.
  */
 
 :root {
@@ -56,10 +51,6 @@ code {
 
 .boot-error h1 {
   color: var(--accent);
-}
-
-.boot-error .hint {
-  color: var(--text-dim);
 }
 
 /* --- masthead --------------------------------------------------------------- */
@@ -229,8 +220,7 @@ code {
   border-radius: 5px;
   cursor: pointer;
   line-height: 0;
-  /* Off spells stay visible but clearly inactive, so the row reads as a palette
-     of what exists rather than only what is on. */
+  /* Off spells stay visible, so the row reads as a palette of what exists. */
   filter: grayscale(1) brightness(0.55);
 }
 
@@ -358,7 +348,7 @@ code {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #d98cc4; /* rogue class colour reads as yellow; pink keeps names legible */
+  color: #d98cc4; /* the rogue class colour is too low-contrast here */
 }
 
 .amount {
@@ -374,15 +364,9 @@ code {
 }
 
 /*
- * The scale lives on this inner element, inset from both edges, and every marker
- * positions against it.
- *
- * Padding on .cell-track cannot do this job: percentage offsets on absolutely
- * positioned children resolve against the padding box, so they would ignore it. The
- * markers are centred on their instant (translateX(-50%)), so a cast at 0:00 hangs
- * half its width past the left edge and lands on top of the dps figure in the name
- * column. The right inset does the same for the last cast and for the kill-time
- * label that trails it.
+ * The scale, inset from both edges so a marker centred on 0:00 does not overlap the
+ * name column. Padding on .cell-track cannot do this: percentage offsets on
+ * absolutely positioned children resolve against the padding box and ignore it.
  */
 .track-inner {
   position: relative;
@@ -410,7 +394,7 @@ code {
   white-space: nowrap;
 }
 
-/* How long this player's pull actually lasted, against the page's shared scale. */
+/* How long this pull lasted, against the shared scale. */
 .fight-bar {
   position: absolute;
   top: 0;
@@ -431,8 +415,7 @@ code {
 .cast {
   position: absolute;
   top: 2px;
-  /* Anchored on the cast's instant, not to the left of it, so the icon centre is
-     the true time. */
+  /* Centred on the instant, so the icon centre is the true time. */
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -457,7 +440,7 @@ code {
   white-space: nowrap;
 }
 
-/* Clusters overlap by design. Hovering lifts one clear of the pile. */
+/* Clusters overlap by design; hover lifts one clear. */
 .cast:hover {
   z-index: 5;
   background: #3a3157;

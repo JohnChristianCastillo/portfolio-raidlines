@@ -1,12 +1,6 @@
 /**
- * The payoff: one parse as a Method Raid Tools note, ready to paste.
- *
- * Opened by clicking a player's name. Shows the reminder string for exactly the
- * spells currently toggled on, so narrowing the timeline to two cooldowns narrows
- * the export to the same two.
- *
- * The header comment lines are included in what gets copied. MRT ignores them and
- * they make a note found six weeks later still say which log it came from.
+ * One parse as a Method Raid Tools note, ready to paste. Covers the spells
+ * currently toggled on. The header comment lines are copied too; MRT ignores them.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -55,8 +49,8 @@ export default function PlayerModal({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Clipboard access needs a secure context, which plain http on a LAN address
-      // is not. The textarea is selectable, so say so instead of failing silently.
+      // Needs a secure context, which http on a LAN address is not. The textarea
+      // stays selectable.
       setCopied(false);
     }
   }
@@ -91,8 +85,8 @@ export default function PlayerModal({
 
         <p className="modal-hint">
           {lineCount === 0
-            ? "No spells are toggled on, so the note is empty. Turn some on above."
-            : `${lineCount} reminders, for the spells currently toggled on. Paste into the MRT note.`}
+            ? "Nothing toggled on."
+            : `${lineCount} reminders. Paste into an MRT note.`}
         </p>
 
         <textarea className="note" readOnly value={note} spellCheck={false} />
@@ -101,9 +95,7 @@ export default function PlayerModal({
           <button type="button" className="copy" onClick={copy}>
             {copied ? "Copied" : "Copy note"}
           </button>
-          <span className="modal-note">
-            Absolute times only. Phase-relative anchors are a later milestone.
-          </span>
+          <span className="modal-note">Absolute times only.</span>
         </footer>
       </div>
     </div>

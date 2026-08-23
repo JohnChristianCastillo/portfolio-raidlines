@@ -1,10 +1,4 @@
-/**
- * The shape of the backend's data API, and the calls that reach it.
- *
- * These types mirror what backend/app/routers/api.py returns. They are hand-written
- * rather than generated because there are four endpoints and one of them does all
- * the work; a generator would be more moving parts than it saves.
- */
+/** The backend's data API: response types and the calls that reach it. */
 
 export interface Spell {
   id: number;
@@ -34,7 +28,7 @@ export interface Difficulty {
 }
 
 export interface Meta {
-  /** false means the backend is replaying recorded fixtures, not live rankings. */
+  /** false = replaying recorded fixtures rather than live rankings. */
   live: boolean;
   topN: number;
   difficulties: Difficulty[];
@@ -84,20 +78,20 @@ export interface Timelines {
   spec: { key: string; label: string };
   maxDuration: number;
   players: Player[];
-  /** Non-fatal problems worth telling the user about, e.g. an unreadable log. */
+  /** Non-fatal problems, e.g. an unreadable log. */
   warnings: string[];
 }
 
 async function get<T>(path: string): Promise<T> {
   const response = await fetch(path);
   if (!response.ok) {
-    // FastAPI puts the useful message in `detail`; fall back to the status line.
+    // FastAPI puts the useful message in `detail`.
     let message = `${response.status} ${response.statusText}`;
     try {
       const body = await response.json();
       if (body?.detail) message = body.detail;
     } catch {
-      // Body was not JSON. The status line is all we have.
+      // Not JSON; the status line is all we have.
     }
     throw new Error(message);
   }

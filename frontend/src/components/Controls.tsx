@@ -1,12 +1,7 @@
 /**
- * The top row: what fight are we looking at.
- *
- * Difficulty is a small set of buttons rather than the dropdown lorrgs uses. There
- * are three of them and they are the most-changed control on the page, so hiding
- * them behind a click costs more than the width they take.
- *
- * Bosses are laid out flat and all at once, because a tier has eight or nine of them
- * and one click should be enough to switch. Exactly one can be selected.
+ * Which fight are we looking at. Difficulty is buttons rather than a dropdown, and
+ * every boss is laid out at once, so switching either is one click. One boss at a
+ * time.
  */
 
 import type { Difficulty, Encounter, Spec, Zone } from "../api";

@@ -1,16 +1,17 @@
 """The GraphQL documents Raidline sends to Warcraft Logs.
 
 Kept as plain strings in one file so the whole API surface we depend on is visible
-at a glance. Three queries cover the app:
+at a glance:
 
   ZONES      what raids and bosses exist, so the boss row is never hardcoded
-  RANKINGS   the top parses for one boss + difficulty + spec
-  FIGHT      one player's tracked casts within one logged pull
+  RANKINGS   the top parses for one boss + difficulty + spec, with gear
+  FIGHT      one player's casts within one logged pull
+  TALENTS    that player's talent loadout, as an in-game import string
 
-Note on cost: the rate limit is point-based and scales with returned data, so
-RANKINGS asks for one page and FIGHT filters server-side by ability ID. Pulling a
-whole fight's cast log unfiltered and discarding it here would work and would also
-burn the hourly budget in a handful of clicks.
+FIGHT deliberately does not filter by ability. Measured against the live API, a
+filtered and an unfiltered cast query cost the same 2 points, so narrowing it buys
+nothing and costs plenty: trinkets could not be detected from what players actually
+use, and every catalog edit would invalidate the cache.
 """
 
 # characterRankings and events return an untyped JSON scalar, hence no subselection.
@@ -51,6 +52,9 @@ query Rankings(
         specName: $specName
         metric: dps
         page: $page
+        # Adds gear and talents to each ranking. Gear slots 12 and 13 are the
+        # trinkets, which is where the trinket list comes from.
+        includeCombatantInfo: true
       )
     }
   }
@@ -84,10 +88,25 @@ query Fight(
         fightIDs: [$fightId]
         dataType: Casts
         filterExpression: $filter
-        limit: 2000
+        limit: 3000
       ) {
         data
         nextPageTimestamp
+      }
+    }
+  }
+}
+"""
+
+# The loadout string the game's talent UI accepts, e.g. "CUQAAAAAAAAAAAAAAAgx2M...".
+# actorID is the report-scoped player ID, which cast events carry as sourceID.
+TALENTS = """
+query Talents($code: String!, $fightId: Int!, $actorId: Int!) {
+  reportData {
+    report(code: $code) {
+      fights(fightIDs: [$fightId]) {
+        id
+        talentImportCode(actorID: $actorId)
       }
     }
   }

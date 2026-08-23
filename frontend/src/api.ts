@@ -57,6 +57,12 @@ export interface Cast {
   icon: string;
 }
 
+export interface Trinket {
+  id: number;
+  name: string;
+  icon: string;
+}
+
 export interface Player {
   rank: number;
   name: string;
@@ -68,6 +74,10 @@ export interface Player {
   kill: boolean;
   reportCode: string;
   fightId: number;
+  /** Report-scoped player ID, needed to ask for talents. Null if they cast nothing. */
+  actorId: number | null;
+  /** The two trinkets they had equipped. */
+  trinkets: Trinket[];
   reportUrl: string;
   casts: Cast[];
 }
@@ -78,6 +88,8 @@ export interface Timelines {
   spec: { key: string; label: string };
   maxDuration: number;
   players: Player[];
+  /** Catalog groups with the trinket group filled in from this board's players. */
+  groups: SpellGroup[];
   /** Non-fatal problems, e.g. an unreadable log. */
   warnings: string[];
 }
@@ -101,6 +113,12 @@ async function get<T>(path: string): Promise<T> {
 export const fetchMeta = () => get<Meta>("/api/meta");
 
 export const fetchZones = () => get<Zone[]>("/api/zones");
+
+/** The talent loadout string, fetched only when a player's note is opened. */
+export const fetchTalents = (code: string, fight: number, actor: number) =>
+  get<{ importCode: string }>(
+    `/api/talents?code=${encodeURIComponent(code)}&fight=${fight}&actor=${actor}`,
+  );
 
 export const fetchTimelines = (
   encounter: number,

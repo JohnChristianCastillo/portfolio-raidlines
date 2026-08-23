@@ -22,7 +22,9 @@ MVP. Subtlety Rogue, one tier at a time, absolute-time reminder export.
 | Boss / difficulty / spec selection, driven by the live Warcraft Logs zone list | More specs (the catalog is per-spec already, they just need authoring) |
 | Top 10 parses per boss and difficulty, cooldown timelines on one shared scale | Phase-relative MRT anchors (`{time:0:05,pg2}`) |
 | Per-group spell toggles, filtered client-side | Boss ability track above the player rows |
-| MRT reminder export, scoped to the toggled spells | Potions and trinkets, which are season-specific and hand-curated |
+| MRT reminder export, scoped to the toggled spells | Load an arbitrary log to compare yourself against |
+| Trinkets detected automatically from what the ranked players brought | Buff duration bars, rather than cast markers alone |
+| Talent loadout export, pasteable into the game | |
 | Offline fixture mode, so it runs with no API credentials at all | |
 
 ## Running it locally
@@ -66,10 +68,11 @@ credentials flow against `/api/v2/client`, which is public data and involves no
 browser redirect. The authorization-code flow and its redirect URL are only for
 reading a signed-in user's own private reports, which Raidline never does.
 
-The rate limit is point-based (3600/hour by default) and scales with data returned,
-so every response is cached to disk under `backend/data/cache`. Event queries filter
-by ability ID server-side rather than pulling a whole fight's cast log and discarding
-most of it. `GET /api/budget` reports what is left.
+The rate limit is point-based (3600/hour by default), so every response is cached to
+disk under `backend/data/cache`. Cast queries are deliberately unfiltered: measured
+against the live API a filtered and an unfiltered cast query both cost 2 points, so
+narrowing them bought nothing and cost the trinket detection. `GET /api/budget`
+reports what is left.
 
 ## Adding spells
 
@@ -77,11 +80,13 @@ most of it. `GET /api/budget` reports what is left.
 and it becomes a toggle, gets fetched, and can be exported. Remove it and it vanishes
 from all three. Spell IDs come from the wowhead URL: `/spell=185313/shadow-dance`.
 
-The potions and trinkets groups ship empty on purpose. They change every season and
-the whole point is a curated handful, not every trinket in the game.
+Trinkets are not in the catalog. They are detected per board: gear slots 12 and 13
+of each ranking give the equipped trinkets, and a cast matching one by icon or name
+is a trinket use. The group therefore shows what these ten players actually brought
+to this boss, which is the only trinket list worth having.
 
-Get those IDs from a real log rather than from memory, because a wrong one does not
-error, it silently matches nothing:
+For the groups that are hand-curated, get IDs from a real log rather than from
+memory, because a wrong one does not error, it silently matches nothing:
 
 ```
 python tools\discover.py --encounter <boss id> --difficulty 5
@@ -97,7 +102,8 @@ to paste in.
 | `GET /health` | liveness, and whether live data or fixtures are in use |
 | `GET /api/meta` | specs, difficulties, the tracked-spell catalog |
 | `GET /api/zones` | raid tiers and their bosses, newest first |
-| `GET /api/timelines?encounter=&difficulty=&spec=` | the board |
+| `GET /api/timelines?encounter=&difficulty=&spec=` | the board, plus the spell groups for it |
+| `GET /api/talents?code=&fight=&actor=` | one player's talent loadout string |
 | `GET /api/budget` | remaining Warcraft Logs point budget |
 
 ## Layout
@@ -127,6 +133,8 @@ frontend/
 
 - A pre-pull potion falls outside the logged fight window, so it does not appear on
   the timeline. Everything from the pull onward does.
+- Some trinkets surface twice, as the item's own cast and as its effect. Both are
+  real cast events, so both are shown rather than guessing which to hide.
 - Private, deleted or unreadable reports cost that one row rather than the page; the
   board says which player was dropped and why.
 - Only `cast` events are drawn. `begincast` is discarded, otherwise every ability

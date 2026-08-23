@@ -4,13 +4,13 @@
  * kill stops early and the remainder is dimmed.
  */
 
-import type { Player, Spec, Timelines } from "../api";
+import type { Player, SpellGroup, Timelines } from "../api";
 import { formatTime } from "../mrt";
 import SpellIcon from "./SpellIcon";
 
 interface Props {
   data: Timelines;
-  spec: Spec | null;
+  groups: SpellGroup[];
   enabled: ReadonlySet<number>;
   onPlayer: (player: Player) => void;
 }
@@ -23,13 +23,13 @@ function tickInterval(duration: number): number {
   return 600;
 }
 
-export default function Timeline({ data, spec, enabled, onPlayer }: Props) {
+export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
   const { maxDuration, players, warnings } = data;
 
   // Colour by catalog group, matching the toggles.
   const colorOf = new Map<number, string>();
   const shortOf = new Map<number, string>();
-  for (const group of spec?.groups ?? []) {
+  for (const group of groups) {
     for (const s of group.spells) {
       colorOf.set(s.id, group.color);
       shortOf.set(s.id, s.short);

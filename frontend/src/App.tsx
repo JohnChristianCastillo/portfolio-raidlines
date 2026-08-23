@@ -68,6 +68,10 @@ export default function App() {
     [zones, zoneId],
   );
 
+  // Trinkets are whatever this board's players brought, so the real group list
+  // arrives with the board. Until then the catalog's own groups stand in.
+  const groups = timelines?.groups ?? spec?.groups ?? [];
+
   // Bosses differ per tier, so a tier change invalidates the chosen boss.
   useEffect(() => {
     setEncounterId(null);
@@ -170,9 +174,9 @@ export default function App() {
         onSpec={setSpecKey}
       />
 
-      {spec && (
+      {groups.length > 0 && (
         <SpellToggles
-          groups={spec.groups}
+          groups={groups}
           enabled={enabled}
           onToggle={toggleSpell}
           onGroup={setGroup}
@@ -188,7 +192,7 @@ export default function App() {
         {ready && !loading && !error && timelines && (
           <Timeline
             data={timelines}
-            spec={spec}
+            groups={groups}
             enabled={enabled}
             onPlayer={setOpenPlayer}
           />

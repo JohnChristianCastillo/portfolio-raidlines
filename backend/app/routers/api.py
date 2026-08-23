@@ -3,6 +3,7 @@
   GET /api/meta        specs, difficulties and the tracked-spell catalog
   GET /api/zones       raid tiers and their bosses, newest first
   GET /api/timelines   the actual product: top N parses and their cooldown usage
+  GET /api/talents     one player's talent loadout, as an in-game import string
   GET /api/budget      remaining Warcraft Logs point budget (diagnostics)
 
 Nothing here is owner-gated. Raidline reads public ranking data and holds no user
@@ -78,6 +79,21 @@ async def timelines(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except client.WclError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/talents")
+async def talents(
+    code: str = Query(..., description="Warcraft Logs report code"),
+    fight: int = Query(..., description="fight ID within that report"),
+    actor: int = Query(..., description="report-scoped player ID"),
+) -> dict:
+    """Fetched on demand, when a player's note is opened, rather than with the board."""
+    try:
+        return {"importCode": await timeline.talents(code, fight, actor)}
+    except client.WclError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/budget")

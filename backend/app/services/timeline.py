@@ -1,31 +1,29 @@
 """Turning ranked parses into comparable timelines.
 
-The shape of the work, per boss + difficulty + spec:
+Per boss + difficulty + spec:
 
   1. Ask Warcraft Logs for the top N character rankings by DPS. Each ranking points
-     at the report and fight it came from.
-  2. For each of those, pull that one player's casts of the tracked spells within
-     that one fight.
-  3. Rebase every cast to seconds since the pull, so ten different logs of different
-     lengths can be laid over one another and read as one picture.
+     at the report and fight it came from, and carries the player's gear.
+  2. Pull that player's casts from that fight.
+  3. Rebase every cast to seconds since the pull, so ten logs of different lengths
+     can be laid over one another and read as one picture.
 
-Two decisions worth knowing about:
+Casts are fetched unfiltered and selected here. An ability-filtered query costs the
+same 2 points as an unfiltered one, so filtering server-side only lost information:
+trinkets are found from what players actually cast, and editing the catalog does not
+invalidate a single cached fight.
 
-Every tracked spell is fetched, not just the ones currently toggled on. Toggling is
-then a filter over data already in the browser rather than a fresh round trip, which
-keeps the UI instant and keeps us inside the hourly point budget. The set of spells
-fetched is exactly the catalog in spells.py.
-
-The per-player fetches run concurrently but capped. Ten parallel event queries would
-be fine for our laptop and rude to Warcraft Logs; the semaphore keeps a few in flight
-without turning one boss click into a burst.
+The trinket group is built per board rather than hand-maintained. Gear slots 12 and
+13 of each ranking are the equipped trinkets; a cast whose icon or name matches one
+of them is a trinket use. That keeps the toggles to what these ten players brought
+to this boss, which is the only trinket list worth showing.
 """
 
 import asyncio
 import logging
 
 from ..config import settings
-from ..spells import SPEC_LABELS, SPEC_QUERY_NAMES, spell_ids_for, spell_index
+from ..spells import SPEC_LABELS, SPEC_QUERY_NAMES, groups_for, spell_index
 from ..wcl import client, queries
 from .catalog import DIFFICULTY_BY_ID
 
@@ -34,9 +32,20 @@ log = logging.getLogger(__name__)
 # How many player-fight queries may be in flight at once.
 FETCH_CONCURRENCY = 4
 
+# Gear array positions of the two trinkets. Fixed by the game's slot order.
+TRINKET_SLOTS = (12, 13)
+
+# The catalog group that discovered trinkets are attached to.
+TRINKET_GROUP = "trinkets"
+
 
 class UnknownSpec(ValueError):
     """Asked for a spec that is not in the catalog."""
+
+
+def _norm_icon(icon: str) -> str:
+    """Icons arrive with and without their extension depending on the field."""
+    return (icon or "").rsplit(".", 1)[0].lower()
 
 
 async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
@@ -58,24 +67,20 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
             "boss and difficulty yet."
         )
 
-    tracked = spell_ids_for(spec_key)
-    if not tracked:
-        warnings.append(
-            "No spells are configured for this spec, so every timeline is empty. "
-            "Add them in backend/app/spells.py."
-        )
+    catalog = spell_index(spec_key)
 
     semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
-    players = await asyncio.gather(
+    results = await asyncio.gather(
         *(
-            _player(rank, entry, spec_key, tracked, semaphore)
+            _player(rank, entry, catalog, semaphore)
             for rank, entry in enumerate(rankings, start=1)
         ),
         return_exceptions=True,
     )
 
     kept: list[dict] = []
-    for entry, result in zip(rankings, players):
+    trinkets: dict[int, dict] = {}
+    for entry, result in zip(rankings, results):
         if isinstance(result, Exception):
             # One unreadable log should cost that row, not the whole page. Private and
             # deleted reports are the usual cause and they are entirely normal.
@@ -83,7 +88,10 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
             log.warning("dropping %s: %s", name, result)
             warnings.append(f"Could not read {name}'s log: {result}")
             continue
-        kept.append(result)
+        player, found = result
+        kept.append(player)
+        for spell_id, spell in found.items():
+            trinkets.setdefault(spell_id, spell)
 
     # The ruler has to span the longest pull, otherwise the slowest kill runs off it.
     max_duration = max((p["duration"] for p in kept), default=0.0)
@@ -96,8 +104,38 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
         "spec": {"key": spec_key, "label": SPEC_LABELS.get(spec_key, spec_key)},
         "maxDuration": max_duration,
         "players": kept,
+        # The catalog groups, with the trinket group filled in from this board.
+        "groups": _groups(spec_key, trinkets),
         "warnings": warnings,
     }
+
+
+def _groups(spec_key: str, trinkets: dict[int, dict]) -> list[dict]:
+    out = []
+    for group in groups_for(spec_key):
+        spells = [
+            {
+                "id": s.id,
+                "name": s.name,
+                "short": s.short,
+                "icon": s.icon,
+                "onByDefault": s.on_by_default,
+            }
+            for s in group.spells
+        ]
+        if group.key == TRINKET_GROUP:
+            spells.extend(
+                sorted(trinkets.values(), key=lambda s: s["name"] or str(s["id"]))
+            )
+        out.append(
+            {
+                "key": group.key,
+                "label": group.label,
+                "color": group.color,
+                "spells": spells,
+            }
+        )
+    return out
 
 
 async def _rankings(
@@ -127,13 +165,29 @@ async def _rankings(
     return rankings, encounter.get("name", "")
 
 
+def _equipped_trinkets(entry: dict) -> list[dict]:
+    gear = entry.get("gear") or []
+    out = []
+    for slot in TRINKET_SLOTS:
+        if slot < len(gear):
+            item = gear[slot] or {}
+            if item.get("id"):
+                out.append(
+                    {
+                        "id": item["id"],
+                        "name": item.get("name", ""),
+                        "icon": item.get("icon", ""),
+                    }
+                )
+    return out
+
+
 async def _player(
     rank: int,
     entry: dict,
-    spec_key: str,
-    tracked: list[int],
+    catalog: dict,
     semaphore: asyncio.Semaphore,
-) -> dict:
+) -> tuple[dict, dict[int, dict]]:
     report = entry.get("report") or {}
     code = report.get("code")
     fight_id = report.get("fightID")
@@ -141,13 +195,15 @@ async def _player(
     if not code or fight_id is None:
         raise ValueError("ranking carries no report reference")
 
+    equipped = _equipped_trinkets(entry)
+
     async with semaphore:
-        fight = await _fight(code, int(fight_id), name, tracked)
+        fight = await _fight(code, int(fight_id), name, catalog, equipped)
 
     server = entry.get("server") or {}
     guild = entry.get("guild") or {}
 
-    return {
+    player = {
         "rank": rank,
         "name": name,
         "server": server.get("name", ""),
@@ -160,20 +216,28 @@ async def _player(
         "kill": fight["kill"],
         "reportCode": code,
         "fightId": int(fight_id),
+        # Report-scoped player ID, needed to ask for the talent loadout. Taken from
+        # the cast events, so it costs no extra query. None if they cast nothing.
+        "actorId": fight["actor_id"],
+        "trinkets": equipped,
         "reportUrl": f"https://www.warcraftlogs.com/reports/{code}#fight={fight_id}",
         "casts": fight["casts"],
     }
+    return player, fight["trinket_spells"]
 
 
-async def _fight(code: str, fight_id: int, source_name: str, tracked: list[int]) -> dict:
-    """One player's tracked casts in one logged pull, rebased to seconds since pull."""
+async def _fight(
+    code: str,
+    fight_id: int,
+    source_name: str,
+    catalog: dict,
+    equipped: list[dict],
+) -> dict:
+    """One player's casts in one logged pull, rebased to seconds since the pull."""
     variables = {
         "code": code,
         "fightId": fight_id,
-        # Filtering server-side is the difference between a few hundred bytes and the
-        # entire cast log of a seven minute fight, and the rate limit charges by data
-        # returned. An empty tracked list would match everything, so guard it.
-        "filter": _filter_expression(source_name, tracked),
+        "filter": _filter_expression(source_name),
     }
     data = await client.graphql(
         queries.FIGHT,
@@ -192,54 +256,99 @@ async def _fight(code: str, fight_id: int, source_name: str, tracked: list[int])
     start = float(fight.get("startTime") or 0.0)
     end = float(fight.get("endTime") or start)
 
-    icons = {
-        a.get("gameID"): a.get("icon", "")
-        for a in ((report.get("masterData") or {}).get("abilities") or [])
-        if a.get("gameID") is not None
-    }
-    names = {
-        a.get("gameID"): a.get("name", "")
-        for a in ((report.get("masterData") or {}).get("abilities") or [])
-        if a.get("gameID") is not None
-    }
+    abilities = (report.get("masterData") or {}).get("abilities") or []
+    icons = {a["gameID"]: a.get("icon", "") for a in abilities if a.get("gameID")}
+    names = {a["gameID"]: a.get("name", "") for a in abilities if a.get("gameID")}
+
+    trinket_icons = {_norm_icon(t["icon"]) for t in equipped if t.get("icon")}
+    trinket_names = {t["name"].lower() for t in equipped if t.get("name")}
 
     events = ((report.get("events") or {}).get("data")) or []
-    casts = []
+    casts: list[dict] = []
+    found: dict[int, dict] = {}
+    actor_id = None
+
     for event in events:
         # dataType Casts returns begincast as well as cast. Counting both would draw
         # every channelled or cast-time ability twice.
         if event.get("type") != "cast":
             continue
         ability_id = event.get("abilityGameID")
-        if ability_id not in tracked:
+        if ability_id is None:
             continue
+        if actor_id is None:
+            actor_id = event.get("sourceID")
+
+        icon = icons.get(ability_id, "")
+        ability_name = names.get(ability_id, "")
+
+        known = ability_id in catalog
+        is_trinket = _norm_icon(icon) in trinket_icons or (
+            ability_name and ability_name.lower() in trinket_names
+        )
+        if not known and not is_trinket:
+            # Builders, spenders and everything else the fight is full of.
+            continue
+
+        if is_trinket and not known:
+            found.setdefault(
+                ability_id,
+                {
+                    "id": ability_id,
+                    "name": ability_name or f"Trinket {ability_id}",
+                    "short": _short(ability_name),
+                    "icon": icon,
+                    "onByDefault": False,
+                },
+            )
+
         casts.append(
             {
                 "spellId": ability_id,
                 "t": round((float(event["timestamp"]) - start) / 1000.0, 1),
-                "name": names.get(ability_id, ""),
-                "icon": icons.get(ability_id, ""),
+                "name": ability_name,
+                "icon": icon,
             }
         )
+
     casts.sort(key=lambda c: c["t"])
 
     return {
         "duration": round((end - start) / 1000.0, 1),
         "kill": bool(fight.get("kill")),
         "casts": casts,
+        "actor_id": actor_id,
+        "trinket_spells": found,
     }
 
 
-def _filter_expression(source_name: str, tracked: list[int]) -> str:
-    if not tracked:
-        # Matches nothing, cheaply. Better than omitting the filter, which would match
-        # every cast in the fight.
-        return 'ability.id = 0 and source.name = ""'
-    ids = ", ".join(str(i) for i in tracked)
+def _short(name: str) -> str:
+    """A 2-3 character badge, the fallback when an icon will not load."""
+    words = [w for w in name.replace("-", " ").split() if w[:1].isalnum()]
+    if len(words) >= 2:
+        return "".join(w[0] for w in words[:3]).upper()
+    return (name[:3] or "?").title()
+
+
+def _filter_expression(source_name: str) -> str:
     escaped = source_name.replace('"', '\\"')
-    return f'source.name = "{escaped}" and ability.id in ({ids})'
+    return f'source.name = "{escaped}"'
 
 
-def spell_names(spec_key: str) -> dict[int, str]:
-    """Catalog display names, used when a report's masterData is unavailable."""
-    return {sid: spell.name for sid, spell in spell_index(spec_key).items()}
+async def talents(code: str, fight_id: int, actor_id: int) -> str:
+    """The player's talent loadout as an in-game import string.
+
+    Fetched on demand rather than with the board: it is only ever read when someone
+    opens a player's note, and asking for ten of them up front would be ten queries
+    nobody looked at.
+    """
+    data = await client.graphql(
+        queries.TALENTS,
+        {"code": code, "fightId": fight_id, "actorId": actor_id},
+        cache_kind="talents",
+        cache_ttl=settings.events_ttl_seconds,
+    )
+    fights = ((data.get("reportData") or {}).get("report") or {}).get("fights") or []
+    if not fights:
+        raise ValueError("fight not found in report")
+    return fights[0].get("talentImportCode") or ""

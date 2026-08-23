@@ -1,10 +1,13 @@
 /**
- * One parse as a Method Raid Tools note, ready to paste. Covers the spells
- * currently toggled on. The header comment lines are copied too; MRT ignores them.
+ * One parse, twice over: the Method Raid Tools note for the spells currently
+ * toggled on, and the talent loadout string the game's own import box accepts.
+ *
+ * Two separate copies rather than one blob, because they are pasted into different
+ * places: the note into MRT, the loadout into the talent UI.
  */
 
 import { useEffect, useMemo, useState } from "react";
-import type { Player } from "../api";
+import { fetchTalents, type Player } from "../api";
 import { buildReminder, reminderHeader } from "../mrt";
 
 interface Props {
@@ -15,6 +18,8 @@ interface Props {
   onClose: () => void;
 }
 
+type Copied = "" | "note" | "talents";
+
 export default function PlayerModal({
   player,
   encounterName,
@@ -22,7 +27,10 @@ export default function PlayerModal({
   enabled,
   onClose,
 }: Props) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<Copied>("");
+  const [talents, setTalents] = useState("");
+  const [talentError, setTalentError] = useState("");
+  const [loadingTalents, setLoadingTalents] = useState(false);
 
   const note = useMemo(() => {
     const body = buildReminder(player.casts, enabled);
@@ -35,6 +43,30 @@ export default function PlayerModal({
     [player, enabled],
   );
 
+  // Fetched on open rather than on click, so the button is ready by the time
+  // anyone reaches for it. One query, and only for the parse actually opened.
+  useEffect(() => {
+    if (player.actorId === null) {
+      setTalentError("no talent data in this log");
+      return;
+    }
+    let cancelled = false;
+    setLoadingTalents(true);
+    setTalents("");
+    setTalentError("");
+    fetchTalents(player.reportCode, player.fightId, player.actorId)
+      .then((r) => {
+        if (cancelled) return;
+        if (r.importCode) setTalents(r.importCode);
+        else setTalentError("this log carries no talent loadout");
+      })
+      .catch((e: Error) => !cancelled && setTalentError(e.message))
+      .finally(() => !cancelled && setLoadingTalents(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [player]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -43,15 +75,15 @@ export default function PlayerModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function copy() {
+  async function copy(what: Copied, text: string) {
     try {
-      await navigator.clipboard.writeText(note);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      await navigator.clipboard.writeText(text);
+      setCopied(what);
+      window.setTimeout(() => setCopied(""), 1800);
     } catch {
-      // Needs a secure context, which http on a LAN address is not. The textarea
-      // stays selectable.
-      setCopied(false);
+      // Needs a secure context, which http on a LAN address is not. Both boxes
+      // stay selectable.
+      setCopied("");
     }
   }
 
@@ -61,7 +93,7 @@ export default function PlayerModal({
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label={`MRT note for ${player.name}`}
+        aria-label={`${player.name}: reminder note and talents`}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal-head">
@@ -83,20 +115,52 @@ export default function PlayerModal({
           </button>
         </header>
 
-        <p className="modal-hint">
-          {lineCount === 0
-            ? "Nothing toggled on."
-            : `${lineCount} reminders. Paste into an MRT note.`}
-        </p>
+        <section className="modal-section">
+          <div className="section-head">
+            <h3>Reminders</h3>
+            <button
+              type="button"
+              className="copy"
+              onClick={() => copy("note", note)}
+              disabled={lineCount === 0}
+            >
+              {copied === "note" ? "Copied" : "Copy note"}
+            </button>
+          </div>
+          <p className="modal-hint">
+            {lineCount === 0
+              ? "Nothing toggled on."
+              : `${lineCount} reminders. Paste into an MRT note.`}
+          </p>
+          <textarea className="note" readOnly value={note} spellCheck={false} />
+        </section>
 
-        <textarea className="note" readOnly value={note} spellCheck={false} />
-
-        <footer className="modal-foot">
-          <button type="button" className="copy" onClick={copy}>
-            {copied ? "Copied" : "Copy note"}
-          </button>
-          <span className="modal-note">Absolute times only.</span>
-        </footer>
+        <section className="modal-section">
+          <div className="section-head">
+            <h3>Talents</h3>
+            <button
+              type="button"
+              className="copy"
+              onClick={() => copy("talents", talents)}
+              disabled={!talents}
+            >
+              {copied === "talents" ? "Copied" : "Copy talents"}
+            </button>
+          </div>
+          <p className="modal-hint">
+            {loadingTalents
+              ? "Loading..."
+              : talentError || "Paste into the game's talent import box."}
+          </p>
+          {talents && (
+            <textarea
+              className="note note--talents"
+              readOnly
+              value={talents}
+              spellCheck={false}
+            />
+          )}
+        </section>
       </div>
     </div>
   );

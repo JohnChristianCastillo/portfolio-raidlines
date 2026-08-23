@@ -365,7 +365,7 @@ def _hero(spec_key: str, entry: dict) -> dict | None:
     tree = hero_tree_for(spec_key, talent_ids)
     if tree is None:
         return None
-    return {"name": tree.name, "icon": tree.icon, "short": _short(tree.name)}
+    return {"name": tree.name, "icon": tree.icon, "short": tree.short or _short(tree.name)}
 
 
 def _trinket_toggle(item_id: int) -> int:

@@ -30,18 +30,23 @@ class Spell:
 
 @dataclass(frozen=True)
 class HeroTree:
-    """A hero talent tree, identified by one talent node.
+    """A hero talent tree, identified by the entry ID of its root node.
 
-    node_id  a talent node only this tree grants. Verified discriminating when every
-             sampled player of the spec has exactly one of the trees' nodes and
-             never two. Find them with tools/herotrees.py.
-    name     display name, e.g. Deathstalker. Blank means unidentified, and nothing
-             is shown rather than something wrong.
-    icon     wowhead icon slug. Optional: with none, the name's initials are drawn.
+    A spec's talent pane is three trees: class on the left, specialisation on the
+    right, and the hero tree in the middle. The middle one offers a choice of two,
+    and the root node of each is unique to it, so its entry ID identifies the tree.
+
+    entry_id  the root node's entry ID, which is what a ranking's talents list
+              carries as talentID. NOT the node ID and NOT the spell ID.
+    name      display name, e.g. Deathstalker. Blank means unidentified, and nothing
+              is drawn rather than something wrong.
+    short     2-3 letter badge, drawn when there is no icon.
+    icon      wowhead icon slug. Optional.
     """
 
-    node_id: int
+    entry_id: int
     name: str
+    short: str = ""
     icon: str = ""
 
 
@@ -111,26 +116,26 @@ CATALOG: dict[str, list[SpellGroup]] = {
     "rogue-subtlety": SUBTLETY_ROGUE,
 }
 
-# Hero talent trees per spec. The node IDs below are mutually exclusive across 21
-# sampled Subtlety parses: every player had exactly one, never both and never
-# neither, which is what a hero tree choice looks like in the data.
+# Hero talent trees per spec, keyed by the entry ID of each tree's root node.
 #
-# Across 100 heroic Nek'zali parses the split is 68/32, which is a real choice
-# rather than the 98/2 of an ordinary either/or talent node.
+# These cannot be derived from the API: Warcraft Logs reports which talent entries a
+# player took but never which tree they belong to, and the schema has no field for
+# it. Nor can they be inferred statistically. An earlier attempt picked the most
+# evenly split mutually exclusive pair of nodes and got an ordinary either/or talent
+# choice instead, because a hero tree is not necessarily a close-run thing: every one
+# of 232 sampled Subtlety parses runs Deathstalker.
 #
-# TODO(owner): name these two. Warcraft Logs exposes the node but not its tree, and
-# the schema has no field for it, so the mapping cannot be read out of the API.
-# Open one player from each side and read off which tree they run:
-#   117703 (68/100), Опровержение:
-#     https://www.warcraftlogs.com/reports/RABFJvt6qfh9krgm?fight=1
-#   126029 (32/100), 十一月飞雪:
-#     https://www.warcraftlogs.com/reports/qKnWXPTwGrBz9fcj?fight=4
-# Re-derive at any time with: python tools/herotrees.py --encounter 3470
-# Until a name is filled in, no hero icon is drawn.
+# So they are read off the game's talent pane by hand. For a new spec, find the two
+# root nodes of the middle tree and take their entry IDs. tools/herotrees.py checks
+# a configured pair against live parses and reports anything it fails to classify.
+#
+# TODO(owner): icon slugs, if the initials badge is not good enough.
 HERO_TREES: dict[str, list[HeroTree]] = {
     "rogue-subtlety": [
-        HeroTree(117703, ""),
-        HeroTree(126029, ""),
+        # root node Deathstalker's Mark (node 95137, spell 467052)
+        HeroTree(117733, "Deathstalker", short="DS"),
+        # root node Unseen Blade (node 95140, spell 441146)
+        HeroTree(117737, "Trickster", short="TR"),
     ],
 }
 
@@ -138,7 +143,7 @@ HERO_TREES: dict[str, list[HeroTree]] = {
 def hero_tree_for(spec_key: str, talent_ids: set[int]) -> HeroTree | None:
     """Which hero tree a player's talent list indicates, if it is a named one."""
     for tree in HERO_TREES.get(spec_key, []):
-        if tree.node_id in talent_ids and tree.name:
+        if tree.entry_id in talent_ids and tree.name:
             return tree
     return None
 

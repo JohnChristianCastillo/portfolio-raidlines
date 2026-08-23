@@ -1,19 +1,23 @@
-"""Find the talent node that tells one hero tree from another.
+"""Check the configured hero talent trees against live parses.
 
     python tools/herotrees.py --encounter 3470 --difficulty 4
 
-Warcraft Logs exposes which talent nodes a player took but not which hero tree those
-nodes belong to, and there is no field in the schema for it. What the data does show
-is the choice: across a spec's parses, exactly one node from each hero tree is
-present, never two and never none.
+Reports how the sampled parses split between the trees in HERO_TREES, and flags any
+parse it cannot classify. An unclassified parse means the entry IDs have gone stale,
+which is what happens when a patch rebuilds a talent tree.
 
-So this samples the ranked parses, finds the nodes that split the population, and
-checks each candidate pair for mutual exclusivity. A pair that is perfectly
-exclusive over a decent sample is the hero tree choice. It then prints a log link
-for one player from each side, so the trees can be named by looking.
+Note on what this tool does NOT do. It cannot find the trees for you. An earlier
+version tried, by looking for the most evenly split pair of mutually exclusive
+talent nodes, on the theory that a hero tree is a real choice while ordinary talents
+are near-unanimous. That is wrong twice over: plenty of ordinary either/or nodes
+split evenly, and a hero tree can be unanimous. Every one of 232 sampled Subtlety
+parses runs Deathstalker, so the true hero node looked like no choice at all while
+an ordinary talent node split 68/32 and looked exactly like one.
 
-Naming is the one step that cannot be automated. Put the result in HERO_TREES in
-app/spells.py; until a name is filled in, no hero icon is drawn.
+The trees have to be read off the game's talent pane instead. The middle of the
+three trees is the hero tree; take the entry ID of each of its two root nodes and
+put them in HERO_TREES. Entry ID, not node ID and not spell ID: a ranking's talents
+list carries entry IDs.
 
 Costs nothing beyond the rankings query: talents come free with includeCombatantInfo.
 """
@@ -22,7 +26,6 @@ import argparse
 import asyncio
 import sys
 from collections import Counter
-from itertools import combinations
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -61,60 +64,48 @@ async def sample(encounter: int, difficulty: int, spec_key: str) -> list[tuple]:
     return out
 
 
-def report_url(report: dict) -> str:
-    code, fight = report.get("code"), report.get("fightID")
-    return f"https://www.warcraftlogs.com/reports/{code}?fight={fight}"
-
-
 async def main_async(args) -> None:
+    trees = HERO_TREES.get(args.spec, [])
+    if not trees:
+        raise SystemExit(f"no hero trees configured for {args.spec} in app/spells.py")
+
     rows = await sample(args.encounter, args.difficulty, args.spec)
+    if not rows:
+        raise SystemExit("no parses with talent data")
+
+    counts: Counter = Counter()
+    unclassified = []
+    multiple = []
+    for name, report, talents in rows:
+        hits = [t for t in trees if t.entry_id in talents]
+        if not hits:
+            unclassified.append((name, report))
+        elif len(hits) > 1:
+            multiple.append((name, [t.name for t in hits]))
+        else:
+            counts[hits[0].name or f"entry {hits[0].entry_id}"] += 1
+
     n = len(rows)
-    if n < 4:
-        raise SystemExit(f"only {n} parses with talent data, too few to judge")
+    print(f"{n} parses sampled\n")
+    for tree in trees:
+        label = tree.name or f"(unnamed) entry {tree.entry_id}"
+        c = counts.get(tree.name or f"entry {tree.entry_id}", 0)
+        print(f"  {label:<22} {c:>4}  ({c * 100 // n if n else 0}%)  entry {tree.entry_id}")
 
-    counts = Counter()
-    for _, _, talents in rows:
-        counts.update(talents)
-    split = [i for i, c in counts.items() if 1 <= c <= n - 1]
+    if multiple:
+        print(f"\n{len(multiple)} parses matched MORE THAN ONE tree, which should be")
+        print("impossible. The entry IDs are probably wrong:")
+        for name, hits in multiple[:5]:
+            print(f"   {name}: {hits}")
 
-    print(f"{n} parses sampled, {len(split)} non-universal talent nodes\n")
-
-    exclusive = []
-    for a, b in combinations(split, 2):
-        both = neither = 0
-        for _, _, talents in rows:
-            has_a, has_b = a in talents, b in talents
-            if has_a and has_b:
-                both += 1
-            elif not has_a and not has_b:
-                neither += 1
-        if both == 0 and neither == 0:
-            exclusive.append((a, b, counts[a], counts[b]))
-
-    # Rank by how evenly the pair splits the population. Plenty of ordinary either/or
-    # talent nodes are mutually exclusive too, but they come out 98/2 because almost
-    # everyone picks the same one. A hero tree is a real choice, so its split is far
-    # closer to even, and that is the whole signal.
-    exclusive.sort(key=lambda x: abs(x[2] - x[3]))
-
-    if not exclusive:
-        print("No mutually exclusive pair found. Either every parse in this sample")
-        print("runs the same hero tree, or the sample is too small. Try another")
-        print("boss, or heroic difficulty, where builds vary more.")
-        return
-
-    known = {t.node_id for trees in HERO_TREES.values() for t in trees}
-    print("candidates, most evenly split first (the top one is the likely tree):\n")
-    for a, b, ca, cb in exclusive[: args.top]:
-        mark = "  (already in HERO_TREES)" if a in known and b in known else ""
-        print(f"candidate pair: {a} ({ca}/{n}) vs {b} ({cb}/{n}){mark}")
-        for node in (a, b):
-            who = next(r for r in rows if node in r[2])
-            print(f"   node {node}: {who[0]} -> {report_url(who[1])}")
-        print()
-
-    print("Open one player from each side, read which hero tree they run, and put")
-    print("the names into HERO_TREES in app/spells.py.")
+    if unclassified:
+        print(f"\n{len(unclassified)} parses matched NO tree. Either a tree is missing")
+        print("from HERO_TREES, or a patch has changed the entry IDs:")
+        for name, report in unclassified[:5]:
+            code, fight = report.get("code"), report.get("fightID")
+            print(f"   {name}: https://www.warcraftlogs.com/reports/{code}?fight={fight}")
+    elif not multiple:
+        print("\nEvery parse classified. The configured entry IDs are current.")
 
 
 def main() -> None:
@@ -122,7 +113,6 @@ def main() -> None:
     parser.add_argument("--encounter", type=int, required=True, help="boss ID")
     parser.add_argument("--difficulty", type=int, default=4, help="3 N, 4 H, 5 M")
     parser.add_argument("--spec", default="rogue-subtlety")
-    parser.add_argument("--top", type=int, default=3, help="candidate pairs to show")
     args = parser.parse_args()
 
     if not settings.live_enabled:

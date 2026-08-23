@@ -66,57 +66,6 @@ class SpellGroup:
     spells: list[Spell] = field(default_factory=list)
 
 
-# --- Subtlety Rogue -----------------------------------------------------------------
-# A second spec is a second entry in SPECS, nothing else.
-
-SUBTLETY_ROGUE = [
-    SpellGroup(
-        key="defensives",
-        label="Defensives",
-        color="#4aa3df",
-        spells=[
-            Spell(1856, "Vanish", "Van", "ability_vanish"),
-            Spell(1966, "Feint", "Fnt", "ability_rogue_feint"),
-            Spell(5277, "Evasion", "Eva", "spell_shadow_shadowward"),
-            Spell(31224, "Cloak of Shadows", "Clk", "spell_shadow_nethercloak"),
-            Spell(185311, "Crimson Vial", "CV", "ability_rogue_crimsonvial"),
-        ],
-    ),
-    SpellGroup(
-        key="main",
-        label="Main abilities",
-        color="#a259e6",
-        spells=[
-            Spell(121471, "Shadow Blades", "SB", "inv_knife_1h_grimbatolraid_d_03", on_by_default=True),
-            Spell(185313, "Shadow Dance", "SD", "ability_rogue_shadowdance", on_by_default=True),
-            # Not 282449, which logs also call Secret Technique: that is the clone
-            # strikes, so it would draw every use twice.
-            Spell(280719, "Secret Technique", "ST", "ability_rogue_sinistercalling"),
-        ],
-    ),
-    SpellGroup(
-        key="potions",
-        label="Potions",
-        color="#3fb950",
-        # Discovered from the logs, not listed here: whatever the ranked players
-        # actually drank. See POTION_ICON_HINTS in services/timeline.py.
-        spells=[],
-    ),
-    SpellGroup(
-        key="trinkets",
-        label="Trinkets",
-        color="#e3a008",
-        # Discovered from the logs too, via gear slots 12 and 13.
-        spells=[],
-    ),
-]
-
-
-# --- the spec registry ----------------------------------------------------------
-#
-# One entry per spec. Three parallel dicts did the job while there was one spec;
-# with the roster to come, everything a spec needs lives in one place.
-
 @dataclass(frozen=True)
 class Spec:
     """A playable specialisation Raidline can draw a board for.
@@ -165,7 +114,69 @@ class Spec:
 # is the hero tree, and the entry ID of each of its two root nodes names it.
 # tools/herotrees.py checks a configured pair against live parses.
 
+
+# --- the catalogs ---------------------------------------------------------------
+#
+# Every spell ID below was resolved with tools/catalog.py, which reads them out of
+# real ranked parses rather than trusting a typed list. Nothing here is from memory.
+#
+# Class abilities are shared between a class's specs: an ability's ID does not change
+# between them, verified for Anti-Magic Zone across Frost and Unholy. Where a spec
+# genuinely differs it gets its own entry, as with Ascendance, which is 114051 for
+# Enhancement and 114050 for Elemental.
+
+DEFENSIVE = "#4aa3df"
+MAIN = "#a259e6"
+POTION = "#3fb950"
+TRINKET = "#e3a008"
+
+
+def _groups(defensives: list[Spell], main: list[Spell]) -> list[SpellGroup]:
+    """The four groups every spec has, in toggle-row order.
+
+    Potions and trinkets are always empty here: both are discovered per board from
+    what the ranked players actually used, so they need no maintenance.
+    """
+    return [
+        SpellGroup("defensives", "Defensives", DEFENSIVE, defensives),
+        SpellGroup("main", "Main abilities", MAIN, main),
+        SpellGroup("potions", "Potions", POTION, []),
+        SpellGroup("trinkets", "Trinkets", TRINKET, []),
+    ]
+
+
+ROGUE_DEFENSIVES = [
+    Spell(1856, "Vanish", "Van", "ability_vanish"),
+    Spell(1966, "Feint", "Fnt", "ability_rogue_feint"),
+    Spell(5277, "Evasion", "Eva", "spell_shadow_shadowward"),
+    Spell(31224, "Cloak of Shadows", "Clk", "spell_shadow_nethercloak"),
+    Spell(185311, "Crimson Vial", "CV", "ability_rogue_crimsonvial"),
+]
+
+DEATH_KNIGHT_DEFENSIVES = [
+    Spell(48265, "Death's Advance", "DA", "spell_shadow_demonicempathy"),
+    Spell(48707, "Anti-Magic Shell", "AMS", "spell_shadow_antimagicshell"),
+    Spell(48792, "Icebound Fortitude", "IF", "spell_deathknight_iceboundfortitude"),
+    Spell(49039, "Lichborne", "Lic", "spell_shadow_raisedead"),
+    Spell(51052, "Anti-Magic Zone", "AMZ", "spell_deathknight_antimagiczone"),
+]
+
+SHAMAN_DEFENSIVES = [
+    Spell(108271, "Astral Shift", "AS", "ability_shaman_astralshift"),
+    Spell(192077, "Wind Rush Totem", "WRT", "ability_shaman_windwalktotem"),
+    Spell(198103, "Earth Elemental", "EE", "spell_nature_earthelemental_totem"),
+]
+
+# Reaper's Mark comes from the Deathbringer hero tree, so it appears only for death
+# knights who took it. Verified on Frost; no Unholy parse in a sample of fifteen used
+# it, which is a talent choice rather than a wrong ID.
+REAPERS_MARK = Spell(
+    439843, "Reaper's Mark", "RM", "inv_ability_deathbringerdeathknight_reapersmark"
+)
+
+
 SPECS: dict[str, Spec] = {
+    # --- Rogue ----------------------------------------------------------------------
     "rogue-subtlety": Spec(
         key="rogue-subtlety",
         label="Subtlety Rogue",
@@ -173,11 +184,120 @@ SPECS: dict[str, Spec] = {
         spec_name="Subtlety",
         spec_id=261,
         role="dps",
-        groups=SUBTLETY_ROGUE,
+        groups=_groups(
+            ROGUE_DEFENSIVES,
+            [
+                Spell(121471, "Shadow Blades", "SB", "inv_knife_1h_grimbatolraid_d_03", on_by_default=True),
+                Spell(185313, "Shadow Dance", "SD", "ability_rogue_shadowdance", on_by_default=True),
+                # Not 282449, which logs also call Secret Technique: that one is the
+                # clone strikes, so tracking it would draw every use twice.
+                Spell(280719, "Secret Technique", "ST", "ability_rogue_sinistercalling"),
+            ],
+        ),
         hero_trees=[
             HeroTree(117733, "Deathstalker", short="DS"),
             HeroTree(117737, "Trickster", short="TR"),
         ],
+    ),
+    "rogue-assassination": Spec(
+        key="rogue-assassination",
+        label="Assassination Rogue",
+        class_name="Rogue",
+        spec_name="Assassination",
+        spec_id=259,
+        role="dps",
+        groups=_groups(
+            ROGUE_DEFENSIVES,
+            [
+                Spell(360194, "Deathmark", "Dth", "ability_rogue_deathmark", on_by_default=True),
+                Spell(385627, "Kingsbane", "Kng", "inv_knife_1h_artifactgarona_d_01", on_by_default=True),
+                Spell(5938, "Shiv", "Shv", "inv_throwingknife_04"),
+            ],
+        ),
+    ),
+    "rogue-outlaw": Spec(
+        key="rogue-outlaw",
+        label="Outlaw Rogue",
+        class_name="Rogue",
+        spec_name="Outlaw",
+        spec_id=260,
+        role="dps",
+        groups=_groups(
+            ROGUE_DEFENSIVES,
+            [
+                Spell(13750, "Adrenaline Rush", "AR", "spell_shadow_shadowworddominate", on_by_default=True),
+                Spell(381989, "Keep It Rolling", "KIR", "ability_rogue_keepitrolling", on_by_default=True),
+                Spell(51690, "Killing Spree", "KS", "inv_112_rogue_betweentheeyes"),
+            ],
+        ),
+    ),
+    # --- Death Knight -----------------------------------------------------------------
+    "deathknight-frost": Spec(
+        key="deathknight-frost",
+        label="Frost Death Knight",
+        class_name="DeathKnight",
+        spec_name="Frost",
+        spec_id=251,
+        role="dps",
+        groups=_groups(
+            DEATH_KNIGHT_DEFENSIVES,
+            [
+                Spell(51271, "Pillar of Frost", "PoF", "ability_deathknight_pillaroffrost", on_by_default=True),
+                Spell(1249658, "Breath of Sindragosa", "BoS", "spell_deathknight_breathofsindragosa", on_by_default=True),
+                Spell(1265384, "Frostwyrm's Fury", "FF", "inv12_apextalent_deathknight_chosenofthefrostbrood"),
+                Spell(46585, "Raise Dead", "RD", "inv_pet_ghoul"),
+                REAPERS_MARK,
+            ],
+        ),
+    ),
+    "deathknight-unholy": Spec(
+        key="deathknight-unholy",
+        label="Unholy Death Knight",
+        class_name="DeathKnight",
+        spec_name="Unholy",
+        spec_id=252,
+        role="dps",
+        groups=_groups(
+            DEATH_KNIGHT_DEFENSIVES,
+            [
+                Spell(42650, "Army of the Dead", "AotD", "spell_deathknight_armyofthedead", on_by_default=True),
+                Spell(1233448, "Dark Transformation", "DT", "achievement_boss_festergutrotface", on_by_default=True),
+                REAPERS_MARK,
+            ],
+        ),
+    ),
+    # --- Shaman -----------------------------------------------------------------------
+    "shaman-enhancement": Spec(
+        key="shaman-enhancement",
+        label="Enhancement Shaman",
+        class_name="Shaman",
+        spec_name="Enhancement",
+        spec_id=263,
+        role="dps",
+        groups=_groups(
+            SHAMAN_DEFENSIVES,
+            [
+                # Warcraft Logs reports Ascendance's icon as a bare number rather than
+                # a slug, so it is left blank and the short badge is drawn instead.
+                Spell(114051, "Ascendance", "Asc", "", on_by_default=True),
+                Spell(469270, "Doom Winds", "DW", "ability_ironmaidens_swirlingvortex", on_by_default=True),
+            ],
+        ),
+    ),
+    "shaman-elemental": Spec(
+        key="shaman-elemental",
+        label="Elemental Shaman",
+        class_name="Shaman",
+        spec_name="Elemental",
+        spec_id=262,
+        role="dps",
+        groups=_groups(
+            SHAMAN_DEFENSIVES,
+            [
+                Spell(114050, "Ascendance", "Asc", "", on_by_default=True),
+                Spell(191634, "Stormkeeper", "SK", "ability_thunderking_lightningwhip", on_by_default=True),
+            ],
+        ),
     ),
 }
 

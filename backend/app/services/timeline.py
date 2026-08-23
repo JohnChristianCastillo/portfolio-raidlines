@@ -42,6 +42,9 @@ log = logging.getLogger(__name__)
 # How many player-fight queries may be in flight at once.
 FETCH_CONCURRENCY = 4
 
+# What Warcraft Logs calls a player who has opted out of rankings.
+ANONYMOUS = "Anonymous"
+
 # Gear array positions of the two trinkets. Fixed by the game's slot order.
 TRINKET_SLOTS = (12, 13)
 
@@ -233,6 +236,13 @@ async def _player(
     name = entry.get("name") or "Unknown"
     if not code or fight_id is None:
         raise ValueError("ranking carries no report reference")
+    if name == ANONYMOUS:
+        # Warcraft Logs hides the name when a player opts out of rankings, and every
+        # cast lookup here filters on source.name. Without a name there is nothing to
+        # filter on, so the row would render empty and look like a player who pressed
+        # nothing. Drop it and say why instead. About 3% of ranked parses.
+        raise ValueError("the player is anonymous on Warcraft Logs, so their casts "
+                         "cannot be looked up")
 
     equipped = _equipped_trinkets(entry)
 

@@ -42,11 +42,7 @@ export default function SpellToggles({ groups, enabled, onToggle, onGroup }: Pro
 
             <div className="toggle-row">
               {group.spells.length === 0 && (
-                // Potions and trinkets ship empty on purpose: they are season
-                // specific and curated by hand. Say so rather than showing a gap.
-                <span className="toggle-empty">
-                  none configured yet, add them in backend/app/spells.py
-                </span>
+                <span className="toggle-empty">none tracked yet</span>
               )}
               {group.spells.map((spell) => {
                 const on = enabled.has(spell.id);

@@ -1,28 +1,19 @@
 """The tracked-spell catalog: what Raidline is allowed to draw on a timeline.
 
-This is the file to edit when a season changes. Nothing else knows which spells
-exist. Adding a spell here makes it appear as a toggle in the UI and be fetched
-from Warcraft Logs; removing it makes it vanish from both.
-
-Structure: one CATALOG per spec, split into groups in the order the spec asked for
-(defensives, main abilities, potions, trinkets). Group order here is the order the
-toggle rows render in.
+The file to edit when a season changes. Nothing else knows which spells exist:
+adding one here makes it a toggle in the UI and fetches it from Warcraft Logs,
+removing it drops it from both. Group order is toggle-row order.
 
 Fields per spell:
-  id     Warcraft Logs / in-game spell ID. This is what the API filters on and what
-         the exported MRT string carries, so it has to be exact. Look one up on
-         wowhead: the number in the URL /spell=185313/shadow-dance.
-  name   Display name, ours to choose. Shown in tooltips and next to toggles.
-  short  2-3 letter badge drawn on the timeline pill when no icon loads.
-  icon   Wowhead icon slug, used only as a fallback. When a timeline is built from
-         live data the icon reported by Warcraft Logs wins, since that is
-         authoritative for the current build and this list is hand-maintained.
+  id     in-game spell ID, from the wowhead URL /spell=185313/shadow-dance. What the
+         API filters on and what the MRT export carries, so it has to be exact.
+         Verify new ones with tools/discover.py; a wrong ID matches nothing silently.
+  name   display name, shown in tooltips and next to toggles.
+  short  2-3 letter badge, drawn when the icon does not load.
+  icon   wowhead icon slug. A fallback only: live timelines use the icon Warcraft
+         Logs reports, which tracks the current build.
   on_by_default
-         Whether its toggle starts enabled. Keep this small. The spec's own
-         screenshots start with one or two spells on, then add more by hand.
-
-Potions and trinkets are deliberately short and marked TODO: per the spec these are
-season-specific and get curated by hand rather than listing every trinket in the game.
+         whether the toggle starts enabled. Keep this to a couple of spells.
 """
 
 from dataclasses import dataclass, field
@@ -46,7 +37,7 @@ class SpellGroup:
 
 
 # --- Subtlety Rogue -----------------------------------------------------------------
-# The only spec in the MVP. A second spec is a second entry in CATALOG, nothing else.
+# A second spec is a second entry in CATALOG, nothing else.
 
 SUBTLETY_ROGUE = [
     SpellGroup(
@@ -68,16 +59,9 @@ SUBTLETY_ROGUE = [
         spells=[
             Spell(121471, "Shadow Blades", "SB", "inv_knife_1h_grimbatolraid_d_03", on_by_default=True),
             Spell(185313, "Shadow Dance", "SD", "ability_rogue_shadowdance", on_by_default=True),
-            # 280719 is the cast. Logs also carry 282449 under the same name at
-            # roughly double the count, which is the clone strikes rather than the
-            # button press, so tracking it would draw every use twice.
+            # Not 282449, which logs also call Secret Technique: that is the clone
+            # strikes, so it would draw every use twice.
             Spell(280719, "Secret Technique", "ST", "ability_rogue_sinistercalling"),
-            # TODO(owner): neither of these was cast by any of the ten top Nek'zali
-            # Mythic parses. Either they are gone from the current build or nobody
-            # takes them. Harmless if wrong (an ID that matches nothing simply never
-            # draws) but they are two dead toggles until confirmed. Delete if gone.
-            Spell(212283, "Symbols of Death", "SoD", "spell_shadow_rune"),
-            Spell(381623, "Thistle Tea", "Tea", "inv_drink_milk_05"),
         ],
     ),
     SpellGroup(
@@ -85,15 +69,6 @@ SUBTLETY_ROGUE = [
         label="Potions",
         color="#3fb950",
         spells=[
-            # ID and icon read off a real Nek'zali Mythic parse, not typed from
-            # memory. A wrong potion ID does not error, it silently matches nothing
-            # and leaves a toggle that draws an empty row forever, so they get
-            # verified before they go in here:
-            #
-            #   python tools/discover.py --encounter <boss id> --difficulty 5
-            #
-            # which prints every ability the top parse actually cast, as catalog
-            # lines ready to paste in.
             Spell(
                 1236994,
                 "Potion of Recklessness",
@@ -101,7 +76,7 @@ SUBTLETY_ROGUE = [
                 "inv_12_profession_alchemy_voidpotion_red",
                 on_by_default=True,
             ),
-            # TODO(owner): any other offensive potions of the active season.
+            # TODO: other offensive potions of the active season.
         ],
     ),
     SpellGroup(
@@ -109,9 +84,7 @@ SUBTLETY_ROGUE = [
         label="Trinkets",
         color="#e3a008",
         spells=[
-            # TODO(owner): the handful of on-use trinkets worth watching this season.
-            # Deliberately curated, not every trinket in the game (spec section 1).
-            # Same as potions: get the IDs from tools/discover.py, not from memory.
+            # TODO: on-use trinkets worth watching this season.
         ],
     ),
 ]
@@ -121,14 +94,12 @@ CATALOG: dict[str, list[SpellGroup]] = {
     "rogue-subtlety": SUBTLETY_ROGUE,
 }
 
-# Warcraft Logs wants these as separate className/specName strings on the rankings
-# query, so each catalog key maps to the pair the API expects.
+# The className/specName pair the rankings query expects, per catalog key.
 SPEC_QUERY_NAMES: dict[str, tuple[str, str]] = {
     "rogue-subtlety": ("Rogue", "Subtlety"),
 }
 
-# Singular, always. A spec is a singular thing, so it stays singular even though the
-# page shows ten of them. Keep any spec added later in the same form.
+# Singular, always, even though the page shows ten of them.
 SPEC_LABELS: dict[str, str] = {
     "rogue-subtlety": "Subtlety Rogue",
 }
@@ -139,9 +110,8 @@ def groups_for(spec_key: str) -> list[SpellGroup]:
 
 
 def spells_for(spec_key: str) -> list[Spell]:
-    """Every tracked spell of a spec, flattened. This is the fetch set: one events
-    query pulls all of them at once so that toggling a spell in the UI is a filter
-    over data we already hold, not another trip to Warcraft Logs."""
+    """Every tracked spell of a spec, flattened. The fetch set: one events query
+    pulls all of them, so toggling in the UI filters data already held."""
     return [s for group in groups_for(spec_key) for s in group.spells]
 
 

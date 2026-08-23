@@ -22,3 +22,7 @@ backend/app/fixtures/*.json
 node_modules/
 frontend/dist/
 *.tsbuildinfo
+
+# Snapshot output. Large, regenerated, and published to the orphan 'data' branch by
+# scripts/publish-data.sh rather than committed here, so main's history stays small.
+frontend/public/data/

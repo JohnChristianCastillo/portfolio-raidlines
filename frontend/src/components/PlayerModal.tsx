@@ -46,15 +46,11 @@ export default function PlayerModal({
   // Fetched on open rather than on click, so the button is ready by the time
   // anyone reaches for it. One query, and only for the parse actually opened.
   useEffect(() => {
-    if (player.actorId === null) {
-      setTalentError("no talent data in this log");
-      return;
-    }
     let cancelled = false;
     setLoadingTalents(true);
     setTalents("");
     setTalentError("");
-    fetchTalents(player.reportCode, player.fightId, player.actorId)
+    fetchTalents(player)
       .then((r) => {
         if (cancelled) return;
         if (r.importCode) setTalents(r.importCode);

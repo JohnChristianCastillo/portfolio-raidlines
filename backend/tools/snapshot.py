@@ -167,6 +167,21 @@ async def run(args) -> None:
             f"{target.stat().st_size / 1024:.0f} KB, {remaining:.0f} points left"
         )
 
+    # The manifest describes what is on disk, not what this run asked for. Runs are
+    # commonly partial (one spec, one difficulty, or resumed after a sleep), and a
+    # manifest built from argv would quietly drop every board an earlier run wrote.
+    present: dict[str, set[int]] = {}
+    for spec_dir in sorted(p for p in out.iterdir() if p.is_dir()):
+        for board_file in spec_dir.glob("*-*.json"):
+            try:
+                _, diff = board_file.stem.rsplit("-", 1)
+                present.setdefault(spec_dir.name, set()).add(int(diff))
+            except ValueError:
+                continue
+
+    covered_specs = [k for k in SPECS if k in present]
+    covered_difficulties = sorted({d for diffs in present.values() for d in diffs})
+
     manifest = {
         "generatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "zone": {
@@ -176,7 +191,7 @@ async def run(args) -> None:
             "encounters": zone["encounters"],
         },
         "difficulties": [
-            d for d in catalog.DIFFICULTIES if d["id"] in args.difficulties
+            d for d in catalog.DIFFICULTIES if d["id"] in covered_difficulties
         ],
         "specs": [
             {
@@ -191,13 +206,17 @@ async def run(args) -> None:
                     for g in spec.groups
                 ],
             }
-            for spec in (SPECS[k] for k in spec_keys)
+            for spec in (SPECS[k] for k in covered_specs)
         ],
         "topN": settings.top_n,
     }
     out.mkdir(parents=True, exist_ok=True)
     (out / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    print(
+        f"\nmanifest covers {len(covered_specs)} specs, difficulties "
+        f"{covered_difficulties}"
     )
 
     total = sum(p.stat().st_size for p in out.rglob("*.json"))

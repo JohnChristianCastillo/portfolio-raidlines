@@ -154,7 +154,12 @@ export default function App() {
             <span className="subject muted">Pick a difficulty and a boss</span>
           )}
         </h1>
-        {!meta.live && (
+        {!meta.live && meta.generatedAt && (
+          <p className="fixture-banner">
+            Snapshot from {new Date(meta.generatedAt).toLocaleDateString()}.
+          </p>
+        )}
+        {!meta.live && !meta.generatedAt && (
           <p className="fixture-banner">Demo data, not live rankings.</p>
         )}
       </header>

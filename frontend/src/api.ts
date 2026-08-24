@@ -1,4 +1,18 @@
-/** The backend's data API: response types and the calls that reach it. */
+/**
+ * Where the board data comes from, in either of the two modes the app runs in.
+ *
+ * Live: a FastAPI backend on /api, which queries Warcraft Logs on demand. This is
+ * the development mode, and the one that can answer a question nobody precomputed.
+ *
+ * Static: precomputed JSON under assets/data, written by backend/tools/snapshot.py.
+ * This is what the published site runs on. No API key exists in the browser, no
+ * request leaves the page, and it scales to any number of visitors because it is
+ * just files on a CDN.
+ *
+ * The mode is decided at load time by whether a snapshot manifest is present, not
+ * by a build flag. That way one build serves both, and running the dev server
+ * against a local snapshot needs no rebuild.
+ */
 
 export interface Spell {
   id: number;
@@ -34,11 +48,13 @@ export interface Difficulty {
 }
 
 export interface Meta {
-  /** false = replaying recorded fixtures rather than live rankings. */
+  /** false = the board data is precomputed rather than queried live. */
   live: boolean;
   topN: number;
   difficulties: Difficulty[];
   specs: Spec[];
+  /** When the snapshot was taken. Absent in live mode. */
+  generatedAt?: string;
 }
 
 export interface Encounter {
@@ -90,8 +106,10 @@ export interface Player {
   actorId: number | null;
   /** The two trinkets they had equipped. */
   trinkets: Trinket[];
-  /** Hero talent tree. Null when it has not been named in spells.py. */
+  /** Hero talent tree, read off the log's ability icons. Null when undetectable. */
   heroTree: { name: string; short: string; asset: string } | null;
+  /** Talent loadout string. Baked in by the snapshot; fetched on demand when live. */
+  talents?: string;
   reportUrl: string;
   casts: Cast[];
 }
@@ -99,7 +117,7 @@ export interface Player {
 export interface Timelines {
   encounter: Encounter;
   difficulty: Difficulty;
-  spec: { key: string; label: string };
+  spec: { key: string; label: string; role?: string };
   maxDuration: number;
   players: Player[];
   /** Catalog groups with the trinket group filled in from this board's players. */
@@ -108,8 +126,11 @@ export interface Timelines {
   warnings: string[];
 }
 
-async function get<T>(path: string): Promise<T> {
-  const response = await fetch(path);
+const BASE = import.meta.env.BASE_URL;
+const DATA = `${BASE}data`;
+
+async function json<T>(url: string): Promise<T> {
+  const response = await fetch(url);
   if (!response.ok) {
     // FastAPI puts the useful message in `detail`.
     let message = `${response.status} ${response.statusText}`;
@@ -124,21 +145,78 @@ async function get<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export const fetchMeta = () => get<Meta>("/api/meta");
+/** The snapshot manifest, when one was shipped with the build. */
+interface Manifest {
+  generatedAt: string;
+  zone: Zone;
+  difficulties: Difficulty[];
+  specs: (Omit<Spec, "groups"> & { groups: Omit<SpellGroup, "spells">[] })[];
+  topN: number;
+}
 
-export const fetchZones = () => get<Zone[]>("/api/zones");
+let manifest: Manifest | null | undefined;
 
-/** The talent loadout string, fetched only when a player's note is opened. */
-export const fetchTalents = (code: string, fight: number, actor: number) =>
-  get<{ importCode: string }>(
-    `/api/talents?code=${encodeURIComponent(code)}&fight=${fight}&actor=${actor}`,
-  );
+async function loadManifest(): Promise<Manifest | null> {
+  if (manifest !== undefined) return manifest;
+  try {
+    manifest = await json<Manifest>(`${DATA}/manifest.json`);
+  } catch {
+    // No snapshot in this build, so the live API is the only source.
+    manifest = null;
+  }
+  return manifest;
+}
 
-export const fetchTimelines = (
+export async function fetchMeta(): Promise<Meta> {
+  const snapshot = await loadManifest();
+  if (!snapshot) return json<Meta>("/api/meta");
+
+  return {
+    live: false,
+    topN: snapshot.topN,
+    difficulties: snapshot.difficulties,
+    generatedAt: snapshot.generatedAt,
+    // Spell lists are per board rather than per spec, since trinkets and potions
+    // are discovered from each board's players. The groups here are the empty
+    // shells the toggle row renders before a boss is chosen.
+    specs: snapshot.specs.map((spec) => ({
+      ...spec,
+      groups: spec.groups.map((group) => ({ ...group, spells: [] })),
+    })),
+  };
+}
+
+export async function fetchZones(): Promise<Zone[]> {
+  const snapshot = await loadManifest();
+  // A snapshot covers exactly one tier, which is the tier it was taken of.
+  return snapshot ? [snapshot.zone] : json<Zone[]>("/api/zones");
+}
+
+export async function fetchTimelines(
   encounter: number,
   difficulty: number,
   spec: string,
-) =>
-  get<Timelines>(
+): Promise<Timelines> {
+  const snapshot = await loadManifest();
+  if (snapshot) return json<Timelines>(`${DATA}/${spec}/${encounter}-${difficulty}.json`);
+  return json<Timelines>(
     `/api/timelines?encounter=${encounter}&difficulty=${difficulty}&spec=${encodeURIComponent(spec)}`,
   );
+}
+
+/**
+ * The talent loadout string.
+ *
+ * In static mode the snapshot baked it into the player, so this never touches the
+ * network. Live, it is one query, made only for the parse actually opened.
+ */
+export async function fetchTalents(
+  player: Player,
+): Promise<{ importCode: string }> {
+  if (player.talents !== undefined) return { importCode: player.talents };
+  if (player.actorId === null) return { importCode: "" };
+  return json<{ importCode: string }>(
+    `/api/talents?code=${encodeURIComponent(player.reportCode)}` +
+      `&fight=${player.fightId}&actor=${player.actorId}`,
+  );
+}

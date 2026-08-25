@@ -524,7 +524,8 @@ code {
 /* --- hover tooltips --------------------------------------------------------- */
 
 /* The anchor must not disturb layout: cast markers are absolutely positioned and
-   the anchor wraps them, so it inherits their positioning rather than adding a box. */
+   the anchor wraps them, so it must add no box of its own. That also means it has
+   no bounding rect, which is why Tooltip positions off the cursor instead. */
 .tip-anchor {
   display: contents;
 }

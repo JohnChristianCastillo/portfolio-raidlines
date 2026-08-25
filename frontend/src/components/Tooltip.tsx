@@ -1,12 +1,20 @@
 /**
  * A hover card in the game's own tooltip style: name, then what it does.
  *
- * Positioned fixed against the trigger's bounding box rather than nested inside it,
- * because the triggers are cast markers packed into a scrolling row with overflow
- * clipping. A nested card would be cut off by the first ancestor that clips.
+ * Positioned above the cursor, not against the trigger. Two reasons, one of them a
+ * bug worth remembering: the anchor is display:contents so that wrapping an
+ * absolutely positioned cast marker does not add a box and shift the timeline. An
+ * element with display:contents generates no box at all, so getBoundingClientRect
+ * on it returns zeros, and anchoring to the trigger put every card in the top left
+ * corner of the window.
  *
- * Flips to the left or above when it would otherwise run off the viewport, which
- * matters here: the rightmost markers on a long fight sit at the screen edge.
+ * Above the cursor rather than below it because the pointer is already on the icon,
+ * so a card below would cover the row underneath, and one at the trigger's corner
+ * means looking away from what you are pointing at. It flips below only when there
+ * is no room above, and is clamped to the viewport horizontally.
+ *
+ * pointer-events: none, so the card can never sit between the cursor and the thing
+ * it describes, whatever the geometry.
  *
  * Renders nothing when there is no text. Potions have no description available, so
  * their markers keep the plain browser tooltip rather than opening an empty card.
@@ -24,50 +32,55 @@ interface Props {
   children: ReactNode;
 }
 
-const GAP = 10;
+const GAP = 14;
+const EDGE = 8;
 const WIDTH = 320;
 
 export default function Tooltip({ content, children }: Props) {
-  const trigger = useRef<HTMLSpanElement>(null);
   const card = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
+  const [placed, setPlaced] = useState<{ top: number; left: number } | null>(null);
 
   useLayoutEffect(() => {
-    if (!open || !trigger.current) return;
-    const anchor = trigger.current.getBoundingClientRect();
-    const height = card.current?.offsetHeight ?? 120;
+    if (!cursor || !card.current) {
+      setPlaced(null);
+      return;
+    }
+    const height = card.current.offsetHeight;
 
-    let left = anchor.left;
-    if (left + WIDTH + GAP > window.innerWidth) {
-      left = Math.max(GAP, anchor.right - WIDTH);
-    }
-    // Below by default, above when there is no room, and never off the top.
-    let top = anchor.bottom + GAP;
-    if (top + height + GAP > window.innerHeight) {
-      top = Math.max(GAP, anchor.top - height - GAP);
-    }
-    setPos({ top, left });
-  }, [open]);
+    // Above the cursor by default; below only if it would run off the top.
+    let top = cursor.y - height - GAP;
+    if (top < EDGE) top = cursor.y + GAP;
+
+    // Centred on the cursor, then pulled back inside the viewport.
+    let left = cursor.x - WIDTH / 2;
+    left = Math.max(EDGE, Math.min(left, window.innerWidth - WIDTH - EDGE));
+
+    setPlaced({ top, left });
+  }, [cursor]);
 
   if (!content?.description) return <>{children}</>;
 
   return (
     <span
-      ref={trigger}
       className="tip-anchor"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
+      onMouseEnter={(e) => setCursor({ x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => setCursor(null)}
     >
       {children}
-      {open && (
+      {cursor && (
         <div
           ref={card}
           className="tip"
           role="tooltip"
-          style={{ top: pos.top, left: pos.left, width: WIDTH }}
+          style={{
+            top: placed?.top ?? -9999,
+            left: placed?.left ?? -9999,
+            width: WIDTH,
+            // Hidden for the one frame between mounting and measuring, so the card
+            // never flashes at its provisional position.
+            visibility: placed ? "visible" : "hidden",
+          }}
         >
           <div className="tip-name">{content.name}</div>
           <div className="tip-body">{content.description}</div>

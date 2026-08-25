@@ -3,7 +3,7 @@
  * until all four are set.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchDescriptions,
   fetchMeta,
@@ -63,15 +63,6 @@ export default function App() {
     [meta, specKey],
   );
 
-  // Seed toggles from the catalog defaults on every spec change.
-  useEffect(() => {
-    if (!spec) return;
-    const defaults = spec.groups
-      .flatMap((g) => g.spells)
-      .filter((s) => s.onByDefault)
-      .map((s) => s.id);
-    setEnabled(new Set(defaults));
-  }, [spec]);
 
   const zone = useMemo(
     () => zones.find((z) => z.id === zoneId) ?? null,
@@ -82,11 +73,43 @@ export default function App() {
   // arrives with the board. Until then the catalog's own groups stand in.
   const groups = timelines?.groups ?? spec?.groups ?? [];
 
-  // Bosses differ per tier, so a tier change invalidates the chosen boss.
+  // Seed the toggles once per spec, from the loaded board.
+  //
+  // Driven by the board rather than by `groups`, and it checks the board is for the
+  // spec we are now on. Switching spec leaves the previous board in state until the
+  // new one arrives, so seeding off `groups` would briefly read the old spec's
+  // spells and switch on abilities the new spec does not have.
+  //
+  // Not from the catalog groups either: in static mode those arrive as empty shells,
+  // since trinkets and potions are discovered per board rather than declared.
+  //
+  // Keyed on the spec so changing boss keeps whatever the user toggled, while
+  // changing spec starts fresh.
+  const seededFor = useRef<string | null>(null);
   useEffect(() => {
-    setEncounterId(null);
+    if (!timelines || timelines.spec.key !== specKey) return;
+    if (seededFor.current === specKey) return;
+
+    const on = new Set<number>();
+    for (const group of timelines.groups) {
+      for (const spell of group.spells) {
+        // The whole specialisation group starts on: it is what the board is for.
+        // Elsewhere only what the catalog marks.
+        if (group.key === "spec" || spell.onByDefault) on.add(spell.id);
+      }
+    }
+    setEnabled(on);
+    seededFor.current = specKey;
+  }, [timelines, specKey]);
+
+  // Bosses differ per tier, so a tier change invalidates the chosen boss. Default to
+  // the first one rather than nothing: the picker should open on a board, not on an
+  // instruction to pick a board.
+  useEffect(() => {
+    const encounters = zones.find((z) => z.id === zoneId)?.encounters ?? [];
+    setEncounterId(encounters.length > 0 ? encounters[0].id : null);
     setTimelines(null);
-  }, [zoneId]);
+  }, [zoneId, zones]);
 
   const ready = difficultyId !== null && encounterId !== null && specKey !== "";
 

@@ -119,10 +119,13 @@ export default function App() {
   // instruction to pick a board.
   useEffect(() => {
     const encounters = zones.find((z) => z.id === zoneId)?.encounters ?? [];
+    // Nothing to validate against until the tier list has loaded. Without this the
+    // effect runs once on mount with zones still empty, finds the remembered boss
+    // in an empty list, and clears it, so every visit reset to the first boss.
+    if (encounters.length === 0) return;
+
     setEncounterId((current) =>
-      encounters.some((e) => e.id === current)
-        ? current
-        : (encounters[0]?.id ?? null),
+      encounters.some((e) => e.id === current) ? current : encounters[0].id,
     );
   }, [zoneId, zones]);
 

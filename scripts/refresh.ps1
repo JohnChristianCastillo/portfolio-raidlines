@@ -5,7 +5,12 @@
 # Three steps, in order, each only run if the last succeeded:
 #   1. snapshot  ask Warcraft Logs for anything that changed
 #   2. publish   force-push the result to the orphan data branch
-#   3. nothing   Cloudflare rebuilds on its own when that branch moves
+#   3. trigger   push an empty commit to main so Cloudflare rebuilds
+#
+# Step 3 is not redundant. Cloudflare builds on a push to its production branch,
+# which is main; a push to the data branch does not move main and so does not
+# rebuild anything. Without this the data branch would go on updating daily while
+# the published site served whatever it had at the last code change.
 #
 # Safe to run at any time and safe to interrupt. The snapshot skips boards already
 # on disk, so a run that dies halfway costs nothing and the next one continues.
@@ -85,7 +90,30 @@ if ($code -ne 0) {
     exit $code
 }
 
-Write-Log "published. Cloudflare rebuilds from the data branch on its own."
+Write-Log "published to the data branch"
+
+# --- 3. trigger the rebuild -------------------------------------------------------
+# The build fetches the data branch itself, so main needs no content change, only a
+# new commit for Cloudflare to react to. Fast-forward first: refusing to push onto a
+# diverged main is better than forcing over work done from another machine.
+$code = Invoke-Logged $repo "git pull --ff-only"
+if ($code -ne 0) {
+    Write-Log "WARNING: main could not fast-forward, so no rebuild was triggered."
+    Write-Log "The data branch is published; push main by hand to pick it up."
+    exit 0
+}
+
+$stamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+$code = Invoke-Logged $repo "git commit --allow-empty -m `"Refresh snapshot $stamp`""
+if ($code -eq 0) {
+    $code = Invoke-Logged $repo "git push origin main"
+}
+if ($code -ne 0) {
+    Write-Log "WARNING: could not trigger the rebuild. Data is published; push main by hand."
+    exit 0
+}
+
+Write-Log "pushed main, Cloudflare will rebuild"
 
 # Keep a fortnight of logs. Enough to see a pattern, not enough to accumulate.
 Get-ChildItem $LogDir -Filter "refresh_*.log" |

@@ -1,0 +1,271 @@
+{
+ "generatedAt": "2026-08-25T10:38:53+00:00",
+ "zone": {
+  "id": 53,
+  "name": "The Venomous Abyss",
+  "expansion": "Midnight",
+  "encounters": [
+   {
+    "id": 3470,
+    "name": "Nek'zali the Soulcoiler"
+   },
+   {
+    "id": 3445,
+    "name": "Entombed Sentinels"
+   },
+   {
+    "id": 3455,
+    "name": "Vashnik the Malignant"
+   },
+   {
+    "id": 3497,
+    "name": "The Lost Explorers"
+   },
+   {
+    "id": 3420,
+    "name": "Sszorak"
+   },
+   {
+    "id": 3421,
+    "name": "The Twin Fangs"
+   },
+   {
+    "id": 3429,
+    "name": "The Coiled Altar"
+   },
+   {
+    "id": 3492,
+    "name": "Ula'tek"
+   },
+   {
+    "id": 3379,
+    "name": "Nymrissa Wavecaller"
+   }
+  ]
+ },
+ "difficulties": [
+  {
+   "id": 4,
+   "name": "Heroic",
+   "short": "H"
+  },
+  {
+   "id": 5,
+   "name": "Mythic",
+   "short": "M"
+  }
+ ],
+ "specs": [
+  {
+   "key": "rogue-subtlety",
+   "label": "Subtlety Rogue",
+   "specId": 261,
+   "role": "dps",
+   "className": "Rogue",
+   "classKey": "rogue",
+   "groups": [
+    {
+     "key": "class",
+     "label": "Rogue",
+     "color": "#4aa3df"
+    },
+    {
+     "key": "spec",
+     "label": "Subtlety",
+     "color": "#a259e6"
+    },
+    {
+     "key": "potions",
+     "label": "Potions",
+     "color": "#3fb950"
+    },
+    {
+     "key": "trinkets",
+     "label": "Trinkets",
+     "color": "#e3a008"
+    }
+   ]
+  },
+  {
+   "key": "rogue-assassination",
+   "label": "Assassination Rogue",
+   "specId": 259,
+   "role": "dps",
+   "className": "Rogue",
+   "classKey": "rogue",
+   "groups": [
+    {
+     "key": "class",
+     "label": "Rogue",
+     "color": "#4aa3df"
+    },
+    {
+     "key": "spec",
+     "label": "Assassination",
+     "color": "#a259e6"
+    },
+    {
+     "key": "potions",
+     "label": "Potions",
+     "color": "#3fb950"
+    },
+    {
+     "key": "trinkets",
+     "label": "Trinkets",
+     "color": "#e3a008"
+    }
+   ]
+  },
+  {
+   "key": "rogue-outlaw",
+   "label": "Outlaw Rogue",
+   "specId": 260,
+   "role": "dps",
+   "className": "Rogue",
+   "classKey": "rogue",
+   "groups": [
+    {
+     "key": "class",
+     "label": "Rogue",
+     "color": "#4aa3df"
+    },
+    {
+     "key": "spec",
+     "label": "Outlaw",
+     "color": "#a259e6"
+    },
+    {
+     "key": "potions",
+     "label": "Potions",
+     "color": "#3fb950"
+    },
+    {
+     "key": "trinkets",
+     "label": "Trinkets",
+     "color": "#e3a008"
+    }
+   ]
+  },
+  {
+   "key": "deathknight-frost",
+   "label": "Frost Death Knight",
+   "specId": 251,
+   "role": "dps",
+   "className": "DeathKnight",
+   "classKey": "deathknight",
+   "groups": [
+    {
+     "key": "class",
+     "label": "Death Knight",
+     "color": "#4aa3df"
+    },
+    {
+     "key": "spec",
+     "label": "Frost",
+     "color": "#a259e6"
+    },
+    {
+     "key": "potions",
+     "label": "Potions",
+     "color": "#3fb950"
+    },
+    {
+     "key": "trinkets",
+     "label": "Trinkets",
+     "color": "#e3a008"
+    }
+   ]
+  },
+  {
+   "key": "deathknight-unholy",
+   "label": "Unholy Death Knight",
+   "specId": 252,
+   "role": "dps",
+   "className": "DeathKnight",
+   "classKey": "deathknight",
+   "groups": [
+    {
+     "key": "class",
+     "label": "Death Knight",
+     "color": "#4aa3df"
+    },
+    {
+     "key": "spec",
+     "label": "Unholy",
+     "color": "#a259e6"
+    },
+    {
+     "key": "potions",
+     "label": "Potions",
+     "color": "#3fb950"
+    },
+    {
+     "key": "trinkets",
+     "label": "Trinkets",
+     "color": "#e3a008"
+    }
+   ]
+  },
+  {
+   "key": "shaman-enhancement",
+   "label": "Enhancement Shaman",
+   "specId": 263,
+   "role": "dps",
+   "className": "Shaman",
+   "classKey": "shaman",
+   "groups": [
+    {
+     "key": "class",
+     "label": "Shaman",
+     "color": "#4aa3df"
+    },
+    {
+     "key": "spec",
+     "label": "Enhancement",
+     "color": "#a259e6"
+    },
+    {
+     "key": "potions",
+     "label": "Potions",
+     "color": "#3fb950"
+    },
+    {
+     "key": "trinkets",
+     "label": "Trinkets",
+     "color": "#e3a008"
+    }
+   ]
+  },
+  {
+   "key": "shaman-elemental",
+   "label": "Elemental Shaman",
+   "specId": 262,
+   "role": "dps",
+   "className": "Shaman",
+   "classKey": "shaman",
+   "groups": [
+    {
+     "key": "class",
+     "label": "Shaman",
+     "color": "#4aa3df"
+    },
+    {
+     "key": "spec",
+     "label": "Elemental",
+     "color": "#a259e6"
+    },
+    {
+     "key": "potions",
+     "label": "Potions",
+     "color": "#3fb950"
+    },
+    {
+     "key": "trinkets",
+     "label": "Trinkets",
+     "color": "#e3a008"
+    }
+   ]
+  }
+ ],
+ "topN": 10
+}

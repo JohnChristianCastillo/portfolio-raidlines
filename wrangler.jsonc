@@ -1,0 +1,19 @@
+{
+  // Cloudflare Workers static-site config, the same shape portfolio-site uses.
+  //
+  // Lives at the repo root rather than in frontend/, because the build has to reach
+  // both halves: scripts/cf-build.sh pulls the snapshot off the data branch into
+  // frontend/public before Vite runs, so the deploy root is the repo, not the app.
+  //
+  // The worker name decides the free URL: raidlines.<your-subdomain>.workers.dev.
+  "name": "raidlines",
+  "compatibility_date": "2026-07-01",
+  "assets": {
+    "directory": "./frontend/dist",
+    // Deliberately not single-page-application. Raidlines has no client-side router,
+    // and SPA handling answers every missing path with index.html at 200. A board
+    // that failed to publish would then arrive as HTML where JSON was expected, and
+    // surface as a parse error rather than an honest 404.
+    "not_found_handling": "none"
+  }
+}

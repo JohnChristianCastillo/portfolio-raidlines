@@ -8,6 +8,14 @@
   // The worker name decides the free URL: raidlines.<your-subdomain>.workers.dev.
   "name": "raidlines",
   "compatibility_date": "2026-07-01",
+
+  // Only main gets a public URL. Both of these default to true when absent, which
+  // means every non-production branch would also be published at its own address.
+  // Nothing secret would leak (the data branch holds JSON the site already serves)
+  // but a branch is a work in progress, and a work in progress with a public URL
+  // invites someone to find it.
+  "workers_dev": true,
+  "preview_urls": false,
   "assets": {
     "directory": "./frontend/dist",
     // Deliberately not single-page-application. Raidlines has no client-side router,

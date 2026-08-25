@@ -85,6 +85,10 @@ jobs:
       - name: Snapshot
         working-directory: backend
         env:
+          # Without this the step prints nothing for hours. Python buffers stdout
+          # when it is not a terminal, so a job that is working looks identical to
+          # one that has hung, and the whole log arrives at the end or not at all.
+          PYTHONUNBUFFERED: "1"
           RAIDLINES_WCL_CLIENT_ID: ${{ secrets.WCL_CLIENT_ID }}
           RAIDLINES_WCL_CLIENT_SECRET: ${{ secrets.WCL_CLIENT_SECRET }}
           RAIDLINES_BLIZZARD_CLIENT_ID: ${{ secrets.BLIZZARD_CLIENT_ID }}

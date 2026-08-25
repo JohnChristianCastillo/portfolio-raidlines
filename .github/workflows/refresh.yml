@@ -1,0 +1,116 @@
+# Refresh the snapshot and publish it, daily.
+#
+# Runs on GitHub rather than a machine at home. Public repositories get unlimited
+# Actions minutes, which matters here because the job spends almost all its time
+# asleep: Warcraft Logs allows 3600 points an hour and a full pass costs roughly
+# 14,000, so about four hours of waiting for a few minutes of work.
+#
+# The loop: snapshot, force-push the data branch, push an empty commit to main.
+# Cloudflare builds on a push to main and fetches the data branch itself, so that
+# last step is what makes any of this reach the site.
+
+name: Refresh snapshot
+
+on:
+  schedule:
+    # 04:00 UTC daily. EU raids reset Wednesday morning, and this lands after the
+    # first night of pulls on every timezone that matters.
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      specs:
+        description: "Space-separated spec keys, or blank for all of them"
+        required: false
+        default: ""
+      force:
+        description: "Rebuild boards that already exist"
+        type: boolean
+        default: true
+
+concurrency:
+  # One refresh at a time. Two would race on the data branch and on main, and the
+  # second would spend its life rate-limited by the first.
+  group: refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # A full pass is about four hours of mostly waiting. The ceiling is six.
+    timeout-minutes: 350
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The job pushes to main at the end, so it needs a real token and the
+          # ability to fast-forward first.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Restore the API response cache
+        # A logged fight never changes, so a cached response is correct forever.
+        # Without this every run re-fetches every fight and takes far longer for
+        # exactly the same output.
+        uses: actions/cache@v4
+        with:
+          path: backend/data/cache
+          key: wcl-cache-${{ github.run_id }}
+          restore-keys: wcl-cache-
+
+      - name: Fetch the existing snapshot
+        # Start from what is already published so an interrupted run resumes rather
+        # than starting over. Without --force the snapshot skips these entirely.
+        run: |
+          if git fetch --depth 1 origin data 2>/dev/null; then
+            git checkout FETCH_HEAD -- data
+            mkdir -p frontend/public
+            rm -rf frontend/public/data
+            mv data frontend/public/data
+            echo "resuming from $(find frontend/public/data -name '*.json' | wc -l) files"
+          else
+            echo "no data branch yet, starting fresh"
+          fi
+
+      - name: Snapshot
+        working-directory: backend
+        env:
+          RAIDLINES_WCL_CLIENT_ID: ${{ secrets.WCL_CLIENT_ID }}
+          RAIDLINES_WCL_CLIENT_SECRET: ${{ secrets.WCL_CLIENT_SECRET }}
+          RAIDLINES_BLIZZARD_CLIENT_ID: ${{ secrets.BLIZZARD_CLIENT_ID }}
+          RAIDLINES_BLIZZARD_CLIENT_SECRET: ${{ secrets.BLIZZARD_CLIENT_SECRET }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.force }}" != "false" ]; then ARGS="$ARGS --force"; fi
+          if [ -n "${{ github.event.inputs.specs }}" ]; then
+            for s in ${{ github.event.inputs.specs }}; do
+              python tools/snapshot.py --spec "$s" $ARGS
+            done
+          else
+            python tools/snapshot.py $ARGS
+          fi
+
+      - name: Publish the data branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          bash scripts/publish-data.sh
+
+      - name: Trigger the Cloudflare rebuild
+        # Cloudflare builds on a push to main. Publishing the data branch alone
+        # changes nothing that it watches, so without this the site would keep
+        # serving the previous snapshot.
+        run: |
+          git pull --ff-only
+          git commit --allow-empty -m "Refresh snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push origin HEAD:main

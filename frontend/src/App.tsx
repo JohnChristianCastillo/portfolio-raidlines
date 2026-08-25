@@ -19,6 +19,7 @@ import Controls from "./components/Controls";
 import SpellToggles from "./components/SpellToggles";
 import Timeline from "./components/Timeline";
 import PlayerModal from "./components/PlayerModal";
+import { loadPrefs, savePrefs } from "./prefs";
 import "./styles/app.css";
 
 export default function App() {
@@ -26,14 +27,25 @@ export default function App() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [bootError, setBootError] = useState("");
 
-  const [zoneId, setZoneId] = useState<number | null>(null);
+  // Read once, synchronously, so the first render already has last visit's choices
+  // and nothing flashes at a default before being corrected.
+  const saved = useRef(loadPrefs()).current;
+
+  const [zoneId, setZoneId] = useState<number | null>(saved.zoneId);
   // Mythic by default: it is what the top parses are set on, and the reference
   // people come here for.
-  const [difficultyId, setDifficultyId] = useState<number | null>(5);
-  const [encounterId, setEncounterId] = useState<number | null>(null);
-  const [specKey, setSpecKey] = useState<string>("rogue-subtlety");
+  const [difficultyId, setDifficultyId] = useState<number | null>(
+    saved.difficultyId ?? 5,
+  );
+  const [encounterId, setEncounterId] = useState<number | null>(saved.encounterId);
+  const [specKey, setSpecKey] = useState<string>(
+    saved.specKey ?? "rogue-subtlety",
+  );
 
-  const [enabled, setEnabled] = useState<Set<number>>(new Set());
+  // Per spec, and null for a spec never touched, which means "use the defaults".
+  // Storing the defaults instead would freeze them: a spec gaining an ability would
+  // never switch it on for anyone who had already visited.
+  const [toggles, setToggles] = useState<Record<string, number[]>>(saved.toggles);
 
   const [timelines, setTimelines] = useState<Timelines | null>(null);
   const [loading, setLoading] = useState(false);
@@ -52,8 +64,11 @@ export default function App() {
       .then(([m, z]) => {
         setMeta(m);
         setZones(z);
-        // Newest tier first.
-        if (z.length > 0) setZoneId(z[0].id);
+        // Newest tier first, unless a remembered one is still in the list. A tier
+        // that has since gone is silently replaced rather than left dangling.
+        setZoneId((current) =>
+          z.some((zone) => zone.id === current) ? current : (z[0]?.id ?? null),
+        );
       })
       .catch((e: Error) => setBootError(e.message));
   }, []);
@@ -73,43 +88,49 @@ export default function App() {
   // arrives with the board. Until then the catalog's own groups stand in.
   const groups = timelines?.groups ?? spec?.groups ?? [];
 
-  // Seed the toggles once per spec, from the loaded board.
+  // Derived, not seeded by an effect.
   //
-  // Driven by the board rather than by `groups`, and it checks the board is for the
-  // spec we are now on. Switching spec leaves the previous board in state until the
-  // new one arrives, so seeding off `groups` would briefly read the old spec's
-  // spells and switch on abilities the new spec does not have.
-  //
-  // Not from the catalog groups either: in static mode those arrive as empty shells,
-  // since trinkets and potions are discovered per board rather than declared.
-  //
-  // Keyed on the spec so changing boss keeps whatever the user toggled, while
-  // changing spec starts fresh.
-  const seededFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (!timelines || timelines.spec.key !== specKey) return;
-    if (seededFor.current === specKey) return;
+  // An effect that fills in the defaults has to run after the board arrives and
+  // before the first paint that uses it, which makes correctness depend on effect
+  // ordering. Deriving it cannot be too early or too late: with no stored choice
+  // for this spec, the defaults simply are the value.
+  const enabled = useMemo(() => {
+    const stored = toggles[specKey];
+    if (stored) return new Set(stored);
 
     const on = new Set<number>();
-    for (const group of timelines.groups) {
-      for (const spell of group.spells) {
-        // The whole specialisation group starts on: it is what the board is for.
-        // Elsewhere only what the catalog marks.
-        if (group.key === "spec" || spell.onByDefault) on.add(spell.id);
+    // Only from a board that belongs to this spec. Switching spec leaves the old
+    // board in state until the new one lands, and the old spec's abilities are not
+    // this spec's defaults.
+    if (timelines?.spec.key === specKey) {
+      for (const group of timelines.groups) {
+        for (const spell of group.spells) {
+          // The whole specialisation group starts on: it is what the board is for.
+          // Elsewhere only what the catalog marks.
+          if (group.key === "spec" || spell.onByDefault) on.add(spell.id);
+        }
       }
     }
-    setEnabled(on);
-    seededFor.current = specKey;
-  }, [timelines, specKey]);
+    return on;
+  }, [toggles, specKey, timelines]);
 
   // Bosses differ per tier, so a tier change invalidates the chosen boss. Default to
   // the first one rather than nothing: the picker should open on a board, not on an
   // instruction to pick a board.
   useEffect(() => {
     const encounters = zones.find((z) => z.id === zoneId)?.encounters ?? [];
-    setEncounterId(encounters.length > 0 ? encounters[0].id : null);
-    setTimelines(null);
+    setEncounterId((current) =>
+      encounters.some((e) => e.id === current)
+        ? current
+        : (encounters[0]?.id ?? null),
+    );
   }, [zoneId, zones]);
+
+  // Persist whenever any of it changes. Cheap, and it means a crash or a closed
+  // laptop loses nothing.
+  useEffect(() => {
+    savePrefs({ zoneId, difficultyId, encounterId, specKey, toggles });
+  }, [zoneId, difficultyId, encounterId, specKey, toggles]);
 
   const ready = difficultyId !== null && encounterId !== null && specKey !== "";
 
@@ -140,23 +161,24 @@ export default function App() {
     };
   }, [ready, encounterId, difficultyId, specKey]);
 
+  // Writing a toggle materialises the whole set for this spec, defaults included,
+  // so that from then on it is a choice rather than a fallback.
+  function apply(change: (set: Set<number>) => void) {
+    const next = new Set(enabled);
+    change(next);
+    setToggles((previous) => ({ ...previous, [specKey]: [...next] }));
+  }
+
   function toggleSpell(id: number) {
-    setEnabled((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    apply((set) => (set.has(id) ? set.delete(id) : set.add(id)));
   }
 
   function setGroup(ids: number[], on: boolean) {
-    setEnabled((previous) => {
-      const next = new Set(previous);
+    apply((set) => {
       for (const id of ids) {
-        if (on) next.add(id);
-        else next.delete(id);
+        if (on) set.add(id);
+        else set.delete(id);
       }
-      return next;
     });
   }
 

@@ -15,8 +15,10 @@
   --text-dim: #9a96b0;
   --accent: #c9a227;
   --danger: #e5534b;
-  --row-height: 30px;
-  --name-width: 190px;
+  /* Rows carry a 22px icon plus its time label, and the name cell packs rank, name,
+     dps, two trinkets and a hero badge. Both were sized before those arrived. */
+  --row-height: 38px;
+  --name-width: 300px;
 }
 
 * {
@@ -351,7 +353,7 @@ code {
 
 .timeline-row--ruler {
   background: var(--bg-raised);
-  height: 26px;
+  height: 28px;
 }
 
 .cell-name {
@@ -390,6 +392,7 @@ code {
 
 .player-name {
   flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -400,6 +403,10 @@ code {
   color: var(--text-dim);
   font-size: 11px;
   flex: 0 0 auto;
+  /* Fixed width so the trinket icons line up down the column rather than jittering
+     with each row's dps. */
+  width: 46px;
+  text-align: right;
 }
 
 /* The two trinkets they had equipped, so the row says what they brought at a glance. */
@@ -479,7 +486,7 @@ code {
 
 .kill-time {
   position: absolute;
-  top: 8px;
+  top: 12px;
   margin-left: 5px;
   font-size: 11px;
   color: #5f5b74;
@@ -488,7 +495,7 @@ code {
 
 .cast {
   position: absolute;
-  top: 2px;
+  top: 6px;
   /* Centred on the instant, so the icon centre is the true time. */
   transform: translateX(-50%);
   display: flex;

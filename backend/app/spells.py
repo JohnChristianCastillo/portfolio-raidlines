@@ -187,6 +187,75 @@ SHAMAN_ABILITIES = [
     Spell(198103, "Earth Elemental", "EE", "spell_nature_earthelemental_totem"),
 ]
 
+DEMON_HUNTER_ABILITIES = [
+    Spell(196718, "Darkness", "Dar", "ability_demonhunter_darkness"),
+    Spell(198589, "Blur", "Blu", "ability_demonhunter_blur"),
+    Spell(198793, "Vengeful Retreat", "VR", "ability_demonhunter_vengefulretreat2"),
+]
+
+DRUID_ABILITIES = [
+    Spell(5487, "Bear Form", "BF", "ability_racial_bearform"),
+    Spell(22812, "Barkskin", "Bar", "spell_nature_stoneclawtotem"),
+    Spell(61336, "Survival Instincts", "SI", "ability_druid_tigersroar"),
+    Spell(77764, "Stampeding Roar", "SR", "spell_druid_stampedingroar_cat"),
+    Spell(391528, "Convoke the Spirits", "CtS", "inv_ability_druid_convokethespirits"),
+]
+
+HUNTER_ABILITIES = [
+    Spell(109304, "Exhilaration", "Exh", "ability_hunter_onewithnature"),
+    Spell(186257, "Aspect of the Cheetah", "AotC", "ability_mount_jungletiger"),
+    Spell(264735, "Survival of the Fittest", "SotF", "spell_nature_spiritarmor"),
+]
+
+MONK_ABILITIES = [
+    Spell(115203, "Fortifying Brew", "FB", "ability_monk_fortifyingale_new"),
+    Spell(322109, "Touch of Death", "ToD", "ability_monk_touchofdeath"),
+]
+
+PALADIN_ABILITIES = [
+    Spell(403876, "Divine Protection", "DP", "spell_holy_divineprotection"),
+    Spell(642, "Divine Shield", "DS", "spell_holy_divineshield"),
+    Spell(31884, "Avenging Wrath", "AW", "spell_holy_avenginewrath"),
+    Spell(375576, "Divine Toll", "DT", "inv_ability_paladin_divinetoll"),
+]
+
+PRIEST_ABILITIES = [
+    Spell(586, "Fade", "Fad", "spell_magic_lesserinvisibilty"),
+    Spell(19236, "Desperate Prayer", "DP", "spell_holy_testoffaith"),
+    Spell(32375, "Mass Dispel", "MD", "spell_arcane_massdispel"),
+]
+
+WARLOCK_ABILITIES = [
+    Spell(104773, "Unending Resolve", "UR", "spell_shadow_demonictactics"),
+    Spell(108416, "Dark Pact", "DP", "spell_shadow_deathpact"),
+    Spell(442726, "Malevolence", "Mal", "inv_ability_hellcallerwarlock_malevolence"),
+]
+
+WARRIOR_ABILITIES = [
+    Spell(23920, "Spell Reflection", "SR", "ability_warrior_shieldreflection"),
+    Spell(97462, "Rallying Cry", "RC", "ability_warrior_rallyingcry"),
+    Spell(107574, "Avatar", "Ava", "warrior_talent_icon_avatar"),
+    Spell(446035, "Bladestorm", "Bla", "ability_warrior_bladestorm"),
+]
+
+EVOKER_ABILITIES = [
+    Spell(363916, "Obsidian Scales", "OS", "inv_artifact_dragonscales"),
+    Spell(370553, "Tip the Scales", "TtS", "ability_evoker_tipthescales"),
+    Spell(374227, "Zephyr", "Zep", "ability_evoker_hoverblack"),
+    Spell(374968, "Time Spiral", "TSp", "ability_evoker_timespiral"),
+    Spell(406732, "Spatial Paradox", "SP", "ability_evoker_stretchtime"),
+]
+
+MAGE_ABILITIES = [
+    Spell(55342, "Mirror Image", "MI", "spell_magic_lesserinvisibilty"),
+    Spell(342247, "Alter Time", "AT", "spell_mage_altertime_active"),
+    Spell(414658, "Ice Cold", "IC", "spell_fire_bluefire"),
+]
+
+# The Hunt has a different ID per Demon Hunter spec: 370966 for Havoc, 1246169 for
+# Devourer, whose version is the void-flavoured rework. Not a shared class ability
+# despite the shared name, so each spec carries its own.
+
 # Reaper's Mark comes from the Deathbringer hero tree, so it appears only for death
 # knights who took it. Verified on Frost; no Unholy parse in a sample of fifteen used
 # it, which is a talent choice rather than a wrong ID.
@@ -331,6 +400,367 @@ SPECS: dict[str, Spec] = {
             [
                 Spell(114050, "Ascendance", "Asc", "", on_by_default=True),
                 Spell(191634, "Stormkeeper", "SK", "ability_thunderking_lightningwhip", on_by_default=True),
+            ],
+        ),
+    ),
+    # --- Demon Hunter -----------------------------------------------------------------
+    "demonhunter-havoc": Spec(
+        key="demonhunter-havoc",
+        label="Havoc Demon Hunter",
+        class_name="DemonHunter",
+        spec_name="Havoc",
+        spec_id=577,
+        role="dps",
+        groups=_groups(
+            "Demon Hunter",
+            "Havoc",
+            DEMON_HUNTER_ABILITIES,
+            [
+                Spell(200166, "Metamorphosis", "Meta", "spell_frost_stun", on_by_default=True),
+                Spell(198013, "Eye Beam", "EB", "ability_demonhunter_eyebeam", on_by_default=True),
+                Spell(258860, "Essence Break", "EsB", "spell_shadow_ritualofsacrifice"),
+                Spell(370966, "The Hunt", "Hunt", "inv_ability_demonhunter_thehunt"),
+            ],
+        ),
+    ),
+    "demonhunter-devourer": Spec(
+        key="demonhunter-devourer",
+        label="Devourer Demon Hunter",
+        class_name="DemonHunter",
+        spec_name="Devourer",
+        spec_id=1480,
+        role="dps",
+        groups=_groups(
+            "Demon Hunter",
+            "Devourer",
+            DEMON_HUNTER_ABILITIES,
+            [
+                Spell(1225789, "Void Metamorphosis", "VM", "inv_112_ability_demonhunter_metamorphasisvoid", on_by_default=True),
+                Spell(1227702, "Collapsing Star", "CS", "inv_12_dh_void_ability_collapsingstar", on_by_default=True),
+                Spell(1246169, "The Hunt", "Hunt", "inv_12_voiddh_ability_thehunt"),
+            ],
+        ),
+    ),
+    # --- Druid ------------------------------------------------------------------------
+    "druid-feral": Spec(
+        key="druid-feral",
+        label="Feral Druid",
+        class_name="Druid",
+        spec_name="Feral",
+        spec_id=103,
+        role="dps",
+        groups=_groups(
+            "Druid",
+            "Feral",
+            DRUID_ABILITIES,
+            [
+                Spell(106951, "Berserk", "Ber", "ability_druid_berserk", on_by_default=True),
+                Spell(5217, "Tiger's Fury", "TF", "ability_mount_jungletiger", on_by_default=True),
+                Spell(274837, "Feral Frenzy", "FF", "ability_druid_rake"),
+            ],
+        ),
+    ),
+    "druid-balance": Spec(
+        key="druid-balance",
+        label="Balance Druid",
+        class_name="Druid",
+        spec_name="Balance",
+        spec_id=102,
+        role="dps",
+        groups=_groups(
+            "Druid",
+            "Balance",
+            DRUID_ABILITIES,
+            [
+                Spell(202770, "Fury of Elune", "FoE", "ability_druid_dreamstate", on_by_default=True),
+                Spell(1233272, "Lunar Eclipse", "LE", "ability_druid_eclipse", on_by_default=True),
+            ],
+        ),
+    ),
+    # --- Hunter -----------------------------------------------------------------------
+    "hunter-marksmanship": Spec(
+        key="hunter-marksmanship",
+        label="Marksmanship Hunter",
+        class_name="Hunter",
+        spec_name="Marksmanship",
+        spec_id=254,
+        role="dps",
+        groups=_groups(
+            "Hunter",
+            "Marksmanship",
+            HUNTER_ABILITIES,
+            [
+                Spell(288613, "Trueshot", "TS", "ability_trueshot", on_by_default=True),
+                Spell(260243, "Volley", "Vol", "ability_hunter_rapidkilling", on_by_default=True),
+            ],
+        ),
+    ),
+    "hunter-beastmastery": Spec(
+        key="hunter-beastmastery",
+        label="Beast Mastery Hunter",
+        class_name="Hunter",
+        spec_name="BeastMastery",
+        spec_id=253,
+        role="dps",
+        groups=_groups(
+            "Hunter",
+            "Beast Mastery",
+            HUNTER_ABILITIES,
+            [
+                Spell(19574, "Bestial Wrath", "BW", "ability_druid_ferociousbite", on_by_default=True),
+            ],
+        ),
+    ),
+    "hunter-survival": Spec(
+        key="hunter-survival",
+        label="Survival Hunter",
+        class_name="Hunter",
+        spec_name="Survival",
+        spec_id=255,
+        role="dps",
+        groups=_groups(
+            "Hunter",
+            "Survival",
+            HUNTER_ABILITIES,
+            [
+                Spell(186289, "Aspect of the Eagle", "AotE", "spell_hunter_aspectoftheironhawk", on_by_default=True),
+                Spell(1253859, "Takedown", "Tak", "inv12_ability_hunter_takedown", on_by_default=True),
+                Spell(1261193, "Boomstick", "Boom", "inv_musket_04"),
+            ],
+        ),
+    ),
+    # --- Monk -------------------------------------------------------------------------
+    "monk-windwalker": Spec(
+        key="monk-windwalker",
+        label="Windwalker Monk",
+        class_name="Monk",
+        spec_name="Windwalker",
+        spec_id=269,
+        role="dps",
+        groups=_groups(
+            "Monk",
+            "Windwalker",
+            MONK_ABILITIES,
+            [
+                Spell(1249625, "Zenith", "Zen", "inv_ability_monk_weaponsoforder", on_by_default=True),
+                Spell(122470, "Touch of Karma", "ToK", "ability_monk_touchofkarma"),
+            ],
+        ),
+    ),
+    # --- Paladin ----------------------------------------------------------------------
+    "paladin-retribution": Spec(
+        key="paladin-retribution",
+        label="Retribution Paladin",
+        class_name="Paladin",
+        spec_name="Retribution",
+        spec_id=70,
+        role="dps",
+        groups=_groups(
+            "Paladin",
+            "Retribution",
+            PALADIN_ABILITIES,
+            [
+                Spell(255937, "Wake of Ashes", "WoA", "inv_sword_2h_artifactashbringerfire_d_03", on_by_default=True),
+                Spell(343527, "Execution Sentence", "ES", "spell_paladin_executionsentence", on_by_default=True),
+            ],
+        ),
+    ),
+    # --- Priest -----------------------------------------------------------------------
+    "priest-shadow": Spec(
+        key="priest-shadow",
+        label="Shadow Priest",
+        class_name="Priest",
+        spec_name="Shadow",
+        spec_id=258,
+        role="dps",
+        groups=_groups(
+            "Priest",
+            "Shadow",
+            PRIEST_ABILITIES,
+            [
+                Spell(228260, "Voidform", "VF", "spell_priest_void-blast", on_by_default=True),
+                Spell(120644, "Halo", "Halo", "ability_priest_halo_shadow", on_by_default=True),
+                Spell(15286, "Vampiric Embrace", "VE", "spell_shadow_unsummonbuilding"),
+            ],
+        ),
+    ),
+    # --- Warlock ----------------------------------------------------------------------
+    "warlock-affliction": Spec(
+        key="warlock-affliction",
+        label="Affliction Warlock",
+        class_name="Warlock",
+        spec_name="Affliction",
+        spec_id=265,
+        role="dps",
+        groups=_groups(
+            "Warlock",
+            "Affliction",
+            WARLOCK_ABILITIES,
+            [
+                Spell(205180, "Summon Darkglare", "SD", "inv_beholderwarlock", on_by_default=True),
+                Spell(1257052, "Dark Harvest", "DH", "inv_ability_warlock_soulrot", on_by_default=True),
+            ],
+        ),
+    ),
+    "warlock-demonology": Spec(
+        key="warlock-demonology",
+        label="Demonology Warlock",
+        class_name="Warlock",
+        spec_name="Demonology",
+        spec_id=266,
+        role="dps",
+        groups=_groups(
+            "Warlock",
+            "Demonology",
+            WARLOCK_ABILITIES,
+            [
+                Spell(265187, "Summon Demonic Tyrant", "SDT", "inv_summondemonictyrant", on_by_default=True),
+                Spell(1276452, "Grimoire: Imp Lord", "GIL", "inv_imp3_purple", on_by_default=True),
+            ],
+        ),
+    ),
+    "warlock-destruction": Spec(
+        key="warlock-destruction",
+        label="Destruction Warlock",
+        class_name="Warlock",
+        spec_name="Destruction",
+        spec_id=267,
+        role="dps",
+        groups=_groups(
+            "Warlock",
+            "Destruction",
+            WARLOCK_ABILITIES,
+            [
+                Spell(1122, "Summon Infernal", "SI", "spell_shadow_summoninfernal", on_by_default=True),
+                Spell(80240, "Havoc", "Hav", "ability_warlock_baneofhavoc"),
+            ],
+        ),
+    ),
+    # --- Warrior ----------------------------------------------------------------------
+    "warrior-arms": Spec(
+        key="warrior-arms",
+        label="Arms Warrior",
+        class_name="Warrior",
+        spec_name="Arms",
+        spec_id=71,
+        role="dps",
+        groups=_groups(
+            "Warrior",
+            "Arms",
+            WARRIOR_ABILITIES,
+            [
+                Spell(167105, "Colossus Smash", "CS", "inv_warbreaker", on_by_default=True),
+                Spell(260708, "Sweeping Strikes", "SS", "ability_rogue_slicedice"),
+                Spell(118038, "Die by the Sword", "DbtS", "ability_warrior_challange"),
+            ],
+        ),
+    ),
+    "warrior-fury": Spec(
+        key="warrior-fury",
+        label="Fury Warrior",
+        class_name="Warrior",
+        spec_name="Fury",
+        spec_id=72,
+        role="dps",
+        groups=_groups(
+            "Warrior",
+            "Fury",
+            WARRIOR_ABILITIES,
+            [
+                Spell(1719, "Recklessness", "Rec", "warrior_talent_icon_innerrage", on_by_default=True),
+                Spell(385062, "Odyn's Fury", "OF", "inv_sword_1h_artifactvigfus_d_01", on_by_default=True),
+                Spell(184364, "Enraged Regeneration", "ER", "ability_warrior_focusedrage"),
+            ],
+        ),
+    ),
+    # --- Evoker -----------------------------------------------------------------------
+    "evoker-devastation": Spec(
+        key="evoker-devastation",
+        label="Devastation Evoker",
+        class_name="Evoker",
+        spec_name="Devastation",
+        spec_id=1467,
+        role="dps",
+        groups=_groups(
+            "Evoker",
+            "Devastation",
+            EVOKER_ABILITIES,
+            [
+                Spell(375087, "Dragonrage", "DR", "ability_evoker_dragonrage", on_by_default=True),
+                Spell(433874, "Deep Breath", "DB", "ability_evoker_deepbreath", on_by_default=True),
+            ],
+        ),
+    ),
+    "evoker-augmentation": Spec(
+        key="evoker-augmentation",
+        label="Augmentation Evoker",
+        class_name="Evoker",
+        spec_name="Augmentation",
+        spec_id=1473,
+        role="dps",
+        groups=_groups(
+            "Evoker",
+            "Augmentation",
+            EVOKER_ABILITIES,
+            [
+                Spell(395152, "Ebon Might", "EM", "spell_sarkareth", on_by_default=True),
+                Spell(403631, "Breath of Eons", "BoE", "ability_evoker_breathofeons", on_by_default=True),
+                Spell(404977, "Time Skip", "TSk", "ability_evoker_timeskip"),
+            ],
+        ),
+    ),
+    # --- Mage -------------------------------------------------------------------------
+    "mage-fire": Spec(
+        key="mage-fire",
+        label="Fire Mage",
+        class_name="Mage",
+        spec_name="Fire",
+        spec_id=63,
+        role="dps",
+        groups=_groups(
+            "Mage",
+            "Fire",
+            MAGE_ABILITIES,
+            [
+                Spell(190319, "Combustion", "Comb", "spell_fire_sealoffire", on_by_default=True),
+                Spell(153561, "Meteor", "Met", "spell_mage_meteor", on_by_default=True),
+                Spell(235313, "Blazing Barrier", "BB", "ability_mage_moltenarmor"),
+            ],
+        ),
+    ),
+    "mage-frost": Spec(
+        key="mage-frost",
+        label="Frost Mage",
+        class_name="Mage",
+        spec_name="Frost",
+        spec_id=64,
+        role="dps",
+        groups=_groups(
+            "Mage",
+            "Frost",
+            MAGE_ABILITIES,
+            [
+                Spell(84714, "Frozen Orb", "FO", "spell_frost_frozenorb", on_by_default=True),
+                Spell(205021, "Ray of Frost", "RoF", "ability_mage_rayoffrost", on_by_default=True),
+                Spell(11426, "Ice Barrier", "IB", "spell_ice_lament"),
+            ],
+        ),
+    ),
+    "mage-arcane": Spec(
+        key="mage-arcane",
+        label="Arcane Mage",
+        class_name="Mage",
+        spec_name="Arcane",
+        spec_id=62,
+        role="dps",
+        groups=_groups(
+            "Mage",
+            "Arcane",
+            MAGE_ABILITIES,
+            [
+                Spell(365350, "Arcane Surge", "AS", "ability_mage_arcanesurge", on_by_default=True),
+                Spell(321507, "Touch of the Magi", "ToM", "inv_ability_mage_radiantspark", on_by_default=True),
+                Spell(235450, "Prismatic Barrier", "PB", "spell_magearmor"),
             ],
         ),
     ),

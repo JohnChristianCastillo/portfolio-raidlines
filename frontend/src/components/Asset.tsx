@@ -13,9 +13,10 @@ interface Props {
   path: string;
   alt: string;
   className?: string;
+  title?: string;
 }
 
-export default function Asset({ path, alt, className }: Props) {
+export default function Asset({ path, alt, className, title }: Props) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [path]);
 
@@ -26,6 +27,7 @@ export default function Asset({ path, alt, className }: Props) {
       className={className ?? "asset"}
       src={`${import.meta.env.BASE_URL}assets/${path}`}
       alt={alt}
+      title={title ?? alt}
       loading="lazy"
       onError={() => setFailed(true)}
     />

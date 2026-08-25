@@ -117,7 +117,7 @@ export interface Player {
 export interface Timelines {
   encounter: Encounter;
   difficulty: Difficulty;
-  spec: { key: string; label: string; role?: string };
+  spec: { key: string; label: string; role?: string; classKey?: string };
   maxDuration: number;
   players: Player[];
   /** Catalog groups with the trinket group filled in from this board's players. */

@@ -202,6 +202,7 @@ SPECS: dict[str, Spec] = {
                 # Not 282449, which logs also call Secret Technique: that one is the
                 # clone strikes, so tracking it would draw every use twice.
                 Spell(280719, "Secret Technique", "ST", "ability_rogue_sinistercalling"),
+                Spell(426591, "Goremaw's Bite", "GB", "inv_knife_1h_artifactfangs_d_01"),
             ],
         ),
         hero_trees=[

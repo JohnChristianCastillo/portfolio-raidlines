@@ -128,7 +128,13 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
         "difficulty": DIFFICULTY_BY_ID.get(
             difficulty, {"id": difficulty, "name": str(difficulty), "short": "?"}
         ),
-        "spec": {"key": spec.key, "label": spec.label, "role": spec.role},
+        # classKey drives the class colour the player names are drawn in.
+        "spec": {
+            "key": spec.key,
+            "label": spec.label,
+            "role": spec.role,
+            "classKey": spec.class_key,
+        },
         "maxDuration": max_duration,
         "players": kept,
         # The catalog groups, with the discovered ones filled in from this board.

@@ -20,9 +20,11 @@ interface Props {
   icon: string;
   short: string;
   alt: string;
+  /** Native tooltip. Without it a bare icon says nothing on hover. */
+  title?: string;
 }
 
-export default function SpellIcon({ icon, short, alt }: Props) {
+export default function SpellIcon({ icon, short, alt, title }: Props) {
   const [failed, setFailed] = useState(false);
 
   // A changed slug deserves a fresh attempt.
@@ -30,7 +32,11 @@ export default function SpellIcon({ icon, short, alt }: Props) {
 
   if (!icon || failed) {
     return (
-      <span className="spell-icon spell-icon--text" aria-label={alt}>
+      <span
+        className="spell-icon spell-icon--text"
+        aria-label={alt}
+        title={title ?? alt}
+      >
         {short}
       </span>
     );
@@ -41,6 +47,7 @@ export default function SpellIcon({ icon, short, alt }: Props) {
       className="spell-icon"
       src={iconUrl(icon)}
       alt={alt}
+      title={title ?? alt}
       loading="lazy"
       onError={() => setFailed(true)}
     />

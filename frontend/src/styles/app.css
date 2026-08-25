@@ -393,7 +393,7 @@ code {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #d98cc4; /* the rogue class colour is too low-contrast here */
+  /* Colour comes from the spec's class, set inline: see classColors.ts. */
 }
 
 .amount {

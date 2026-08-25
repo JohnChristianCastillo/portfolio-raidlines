@@ -5,6 +5,7 @@
  */
 
 import type { Player, SpellGroup, Timelines } from "../api";
+import { classColor } from "../classColors";
 import { formatTime } from "../mrt";
 import SpellIcon from "./SpellIcon";
 
@@ -94,7 +95,12 @@ export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
               title={`${player.name}${player.server ? `-${player.server}` : ""} - click for the MRT note`}
             >
               <span className="rank">#{player.rank}</span>
-              <span className="player-name">{player.name}</span>
+              <span
+                className="player-name"
+                style={{ color: classColor(data.spec.classKey) }}
+              >
+                {player.name}
+              </span>
               <span className="amount">
                 {(player.amount / 1000).toFixed(1)}k
               </span>
@@ -105,17 +111,19 @@ export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
                     icon={t.icon}
                     short={t.name.slice(0, 2)}
                     alt={t.name}
+                    title={t.name}
                   />
                 ))}
                 {player.heroTree && (
                   // Round, so it reads as a different kind of thing from the
                   // square trinkets sitting next to it. Ours to serve, unlike the
                   // spell icons, so it needs no CDN fallback.
-                  <span className="hero" title={player.heroTree.name}>
+                  <span className="hero">
                     <img
                       className="spell-icon"
                       src={`${import.meta.env.BASE_URL}assets/${player.heroTree.asset}`}
                       alt={player.heroTree.name}
+                      title={`${player.heroTree.name} hero talents`}
                       loading="lazy"
                     />
                   </span>

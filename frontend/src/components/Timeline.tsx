@@ -4,16 +4,18 @@
  * kill stops early and the remainder is dimmed.
  */
 
-import type { Player, SpellGroup, Timelines } from "../api";
+import type { Player, SpellGroup, Timelines, TooltipText } from "../api";
 import { classColor } from "../classColors";
 import { formatTime } from "../mrt";
 import SpellIcon from "./SpellIcon";
+import Tooltip from "./Tooltip";
 
 interface Props {
   data: Timelines;
   groups: SpellGroup[];
   enabled: ReadonlySet<number>;
   onPlayer: (player: Player) => void;
+  tips: Record<string, TooltipText>;
 }
 
 /** Roughly a dozen ticks, on a round interval. */
@@ -24,7 +26,7 @@ function tickInterval(duration: number): number {
   return 600;
 }
 
-export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
+export default function Timeline({ data, groups, enabled, onPlayer, tips }: Props) {
   const { maxDuration, players, warnings } = data;
 
   // Colour by catalog group, matching the toggles.
@@ -144,27 +146,42 @@ export default function Timeline({ data, groups, enabled, onPlayer }: Props) {
                   </span>
                 )}
 
-                {casts.map((cast, index) => (
-                  <button
-                    type="button"
-                    // Rounding can collide, hence the index in the key.
-                    key={`${cast.spellId}-${cast.t}-${index}`}
-                    className="cast"
-                    style={{
-                      left: pct(cast.t),
-                      borderColor: colorOf.get(cast.toggle) ?? "#888",
-                    }}
-                    title={`${cast.name || shortOf.get(cast.toggle) || cast.spellId} at ${formatTime(cast.t)}`}
-                    onClick={() => onPlayer(player)}
-                  >
-                    <SpellIcon
-                      icon={cast.icon}
-                      short={shortOf.get(cast.toggle) ?? "?"}
-                      alt={cast.name}
-                    />
-                    <span className="cast-time">{formatTime(cast.t).slice(0, 5)}</span>
-                  </button>
-                ))}
+                {casts.map((cast, index) => {
+                  const label =
+                    cast.name || shortOf.get(cast.toggle) || String(cast.spellId);
+                  const text = tips[String(cast.toggle)];
+                  return (
+                    <Tooltip
+                      // Rounding can collide, hence the index in the key.
+                      key={`${cast.spellId}-${cast.t}-${index}`}
+                      content={
+                        text
+                          ? { ...text, name: `${text.name} at ${formatTime(cast.t)}` }
+                          : null
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="cast"
+                        style={{
+                          left: pct(cast.t),
+                          borderColor: colorOf.get(cast.toggle) ?? "#888",
+                        }}
+                        title={`${label} at ${formatTime(cast.t)}`}
+                        onClick={() => onPlayer(player)}
+                      >
+                        <SpellIcon
+                          icon={cast.icon}
+                          short={shortOf.get(cast.toggle) ?? "?"}
+                          alt={cast.name}
+                        />
+                        <span className="cast-time">
+                          {formatTime(cast.t).slice(0, 5)}
+                        </span>
+                      </button>
+                    </Tooltip>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -5,9 +5,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  fetchDescriptions,
   fetchMeta,
   fetchTimelines,
   fetchZones,
+  type TooltipText,
   type Meta,
   type Player,
   type Timelines,
@@ -25,7 +27,9 @@ export default function App() {
   const [bootError, setBootError] = useState("");
 
   const [zoneId, setZoneId] = useState<number | null>(null);
-  const [difficultyId, setDifficultyId] = useState<number | null>(null);
+  // Mythic by default: it is what the top parses are set on, and the reference
+  // people come here for.
+  const [difficultyId, setDifficultyId] = useState<number | null>(5);
   const [encounterId, setEncounterId] = useState<number | null>(null);
   const [specKey, setSpecKey] = useState<string>("rogue-subtlety");
 
@@ -36,6 +40,12 @@ export default function App() {
   const [error, setError] = useState("");
 
   const [openPlayer, setOpenPlayer] = useState<Player | null>(null);
+  const [tips, setTips] = useState<Record<string, TooltipText>>({});
+
+  useEffect(() => {
+    // Best effort: no tooltips is a smaller loss than no board.
+    fetchDescriptions().then(setTips).catch(() => setTips({}));
+  }, []);
 
   useEffect(() => {
     Promise.all([fetchMeta(), fetchZones()])
@@ -185,6 +195,7 @@ export default function App() {
           enabled={enabled}
           onToggle={toggleSpell}
           onGroup={setGroup}
+          tips={tips}
         />
       )}
 
@@ -200,6 +211,7 @@ export default function App() {
             groups={groups}
             enabled={enabled}
             onPlayer={setOpenPlayer}
+            tips={tips}
           />
         )}
       </main>

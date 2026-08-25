@@ -521,6 +521,37 @@ code {
   box-shadow: 0 0 0 1px var(--accent);
 }
 
+/* --- hover tooltips --------------------------------------------------------- */
+
+/* The anchor must not disturb layout: cast markers are absolutely positioned and
+   the anchor wraps them, so it inherits their positioning rather than adding a box. */
+.tip-anchor {
+  display: contents;
+}
+
+.tip {
+  position: fixed;
+  z-index: 60;
+  background: #0b0a11;
+  border: 1px solid var(--line-bright);
+  border-radius: 5px;
+  padding: 9px 11px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.tip-name {
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.tip-body {
+  color: #cfcbdd;
+}
+
 /* --- the MRT modal ---------------------------------------------------------- */
 
 .modal-backdrop {

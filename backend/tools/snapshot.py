@@ -24,6 +24,10 @@ cache underneath means even a forced rebuild of an unchanged fight is free.
 Self-contained. Talents are baked into each board rather than fetched on demand,
 because on a static site there is no demand to fetch on. That is the one place this
 costs materially more than serving live: one extra query per player.
+
+Tooltip text is written once to <out>/spells.json rather than repeated in every
+board. The same forty abilities appear on every board of a spec, and inlining their
+descriptions would have cost more than the boards themselves.
 """
 
 import argparse
@@ -38,8 +42,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+from app.blizzard import BlizzardError, Client  # noqa: E402
 from app.config import settings  # noqa: E402
-from app.services import catalog, timeline  # noqa: E402
+from app.services import catalog, descriptions, timeline  # noqa: E402
 from app.spells import SPECS  # noqa: E402
 from app.wcl import client  # noqa: E402
 
@@ -167,6 +172,8 @@ async def run(args) -> None:
             f"{target.stat().st_size / 1024:.0f} KB, {remaining:.0f} points left"
         )
 
+    write_descriptions(out)
+
     # The manifest describes what is on disk, not what this run asked for. Runs are
     # commonly partial (one spec, one difficulty, or resumed after a sleep), and a
     # manifest built from argv would quietly drop every board an earlier run wrote.
@@ -226,6 +233,49 @@ async def run(args) -> None:
     )
     print(f"{total / 1024 / 1024:.1f} MB under {out}")
     print(f"manifest: {out / 'manifest.json'}")
+
+
+def write_descriptions(out: Path) -> None:
+    """Collect every spell and trinket on the boards, and look up their tooltips.
+
+    Driven by what the boards actually reference rather than by the catalog, so
+    discovered trinkets and potions are included without being listed anywhere.
+    """
+    if not settings.blizzard_enabled:
+        print("\nno Blizzard credentials, skipping tooltips")
+        return
+
+    spell_ids: set[int] = set()
+    item_ids: set[int] = set()
+    for board_file in out.rglob("*-*.json"):
+        try:
+            data = json.loads(board_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        for group in data.get("groups") or []:
+            for spell in group.get("spells") or []:
+                identifier = spell.get("id", 0)
+                # Trinket toggles live in negative ID space, keyed by item.
+                (item_ids if identifier < 0 else spell_ids).add(abs(identifier))
+
+    print(f"\ntooltips for {len(spell_ids)} spells and {len(item_ids)} items")
+    try:
+        with Client() as blizzard:
+            entries = descriptions.for_spells(blizzard, spell_ids)
+            entries.update(descriptions.for_items(blizzard, item_ids))
+    except BlizzardError as exc:
+        print(f"  skipped: {exc}")
+        return
+
+    (out / "spells.json").write_text(
+        json.dumps(entries, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    missing = len(spell_ids) + len(item_ids) - len(entries)
+    print(
+        f"  {len(entries)} described, {missing} without text "
+        "(potions are item effects Blizzard does not expose)"
+    )
 
 
 def main() -> None:

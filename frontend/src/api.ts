@@ -210,6 +210,28 @@ export async function fetchTimelines(
  * In static mode the snapshot baked it into the player, so this never touches the
  * network. Live, it is one query, made only for the parse actually opened.
  */
+/**
+ * Tooltip text for every spell and trinket the boards reference.
+ *
+ * One file for the whole site rather than a copy inside each board: the same
+ * abilities appear on every board of a spec, so inlining the descriptions would have
+ * cost more than the boards. Absent in live mode, where tooltips simply show less.
+ */
+export async function fetchDescriptions(): Promise<Record<string, TooltipText>> {
+  const snapshot = await loadManifest();
+  if (!snapshot) return {};
+  try {
+    return await json<Record<string, TooltipText>>(`${DATA}/spells.json`);
+  } catch {
+    return {};
+  }
+}
+
+export interface TooltipText {
+  name: string;
+  description: string;
+}
+
 export async function fetchTalents(
   player: Player,
 ): Promise<{ importCode: string }> {

@@ -4,17 +4,25 @@
  * on the network.
  */
 
-import type { SpellGroup } from "../api";
+import type { SpellGroup, TooltipText } from "../api";
 import SpellIcon from "./SpellIcon";
+import Tooltip from "./Tooltip";
 
 interface Props {
   groups: SpellGroup[];
   enabled: ReadonlySet<number>;
   onToggle: (id: number) => void;
   onGroup: (ids: number[], on: boolean) => void;
+  tips: Record<string, TooltipText>;
 }
 
-export default function SpellToggles({ groups, enabled, onToggle, onGroup }: Props) {
+export default function SpellToggles({
+  groups,
+  enabled,
+  onToggle,
+  onGroup,
+  tips,
+}: Props) {
   return (
     <section className="toggles">
       {groups.map((group) => {
@@ -41,17 +49,25 @@ export default function SpellToggles({ groups, enabled, onToggle, onGroup }: Pro
               {group.spells.map((spell) => {
                 const on = enabled.has(spell.id);
                 return (
-                  <button
+                  <Tooltip
                     key={spell.id}
-                    type="button"
-                    aria-pressed={on}
-                    title={spell.name}
-                    className={on ? "spell-toggle is-on" : "spell-toggle"}
-                    style={{ "--accent": group.color } as React.CSSProperties}
-                    onClick={() => onToggle(spell.id)}
+                    content={tips[String(spell.id)] ?? { name: spell.name }}
                   >
-                    <SpellIcon icon={spell.icon} short={spell.short} alt={spell.name} />
-                  </button>
+                    <button
+                      type="button"
+                      aria-pressed={on}
+                      title={spell.name}
+                      className={on ? "spell-toggle is-on" : "spell-toggle"}
+                      style={{ "--accent": group.color } as React.CSSProperties}
+                      onClick={() => onToggle(spell.id)}
+                    >
+                      <SpellIcon
+                        icon={spell.icon}
+                        short={spell.short}
+                        alt={spell.name}
+                      />
+                    </button>
+                  </Tooltip>
                 );
               })}
             </div>

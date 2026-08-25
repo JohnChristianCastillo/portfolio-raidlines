@@ -135,27 +135,37 @@ class Spec:
 # genuinely differs it gets its own entry, as with Ascendance, which is 114051 for
 # Enhancement and 114050 for Elemental.
 
-DEFENSIVE = "#4aa3df"
-MAIN = "#a259e6"
+CLASS_COLOR = "#4aa3df"
+SPEC_COLOR = "#a259e6"
 POTION = "#3fb950"
 TRINKET = "#e3a008"
 
 
-def _groups(defensives: list[Spell], main: list[Spell]) -> list[SpellGroup]:
+def _groups(
+    class_label: str,
+    spec_label: str,
+    class_spells: list[Spell],
+    spec_spells: list[Spell],
+) -> list[SpellGroup]:
     """The four groups every spec has, in toggle-row order.
+
+    The first two are named after the class and the specialisation rather than by
+    role, because that is how the game's own talent pane is arranged and how players
+    talk: Cloak of Shadows is a rogue ability, Shadow Dance is a subtlety one.
+    Splitting them into defensive and offensive cut across that grouping.
 
     Potions and trinkets are always empty here: both are discovered per board from
     what the ranked players actually used, so they need no maintenance.
     """
     return [
-        SpellGroup("defensives", "Defensives", DEFENSIVE, defensives),
-        SpellGroup("main", "Main abilities", MAIN, main),
+        SpellGroup("class", class_label, CLASS_COLOR, class_spells),
+        SpellGroup("spec", spec_label, SPEC_COLOR, spec_spells),
         SpellGroup("potions", "Potions", POTION, []),
         SpellGroup("trinkets", "Trinkets", TRINKET, []),
     ]
 
 
-ROGUE_DEFENSIVES = [
+ROGUE_ABILITIES = [
     Spell(1856, "Vanish", "Van", "ability_vanish"),
     Spell(1966, "Feint", "Fnt", "ability_rogue_feint"),
     Spell(5277, "Evasion", "Eva", "spell_shadow_shadowward"),
@@ -163,7 +173,7 @@ ROGUE_DEFENSIVES = [
     Spell(185311, "Crimson Vial", "CV", "ability_rogue_crimsonvial"),
 ]
 
-DEATH_KNIGHT_DEFENSIVES = [
+DEATH_KNIGHT_ABILITIES = [
     Spell(48265, "Death's Advance", "DA", "spell_shadow_demonicempathy"),
     Spell(48707, "Anti-Magic Shell", "AMS", "spell_shadow_antimagicshell"),
     Spell(48792, "Icebound Fortitude", "IF", "spell_deathknight_iceboundfortitude"),
@@ -171,7 +181,7 @@ DEATH_KNIGHT_DEFENSIVES = [
     Spell(51052, "Anti-Magic Zone", "AMZ", "spell_deathknight_antimagiczone"),
 ]
 
-SHAMAN_DEFENSIVES = [
+SHAMAN_ABILITIES = [
     Spell(108271, "Astral Shift", "AS", "ability_shaman_astralshift"),
     Spell(192077, "Wind Rush Totem", "WRT", "ability_shaman_windwalktotem"),
     Spell(198103, "Earth Elemental", "EE", "spell_nature_earthelemental_totem"),
@@ -195,7 +205,9 @@ SPECS: dict[str, Spec] = {
         spec_id=261,
         role="dps",
         groups=_groups(
-            ROGUE_DEFENSIVES,
+            "Rogue",
+            "Subtlety",
+            ROGUE_ABILITIES,
             [
                 Spell(121471, "Shadow Blades", "SB", "inv_knife_1h_grimbatolraid_d_03", on_by_default=True),
                 Spell(185313, "Shadow Dance", "SD", "ability_rogue_shadowdance", on_by_default=True),
@@ -218,7 +230,9 @@ SPECS: dict[str, Spec] = {
         spec_id=259,
         role="dps",
         groups=_groups(
-            ROGUE_DEFENSIVES,
+            "Rogue",
+            "Assassination",
+            ROGUE_ABILITIES,
             [
                 Spell(360194, "Deathmark", "Dth", "ability_rogue_deathmark", on_by_default=True),
                 Spell(385627, "Kingsbane", "Kng", "inv_knife_1h_artifactgarona_d_01", on_by_default=True),
@@ -234,7 +248,9 @@ SPECS: dict[str, Spec] = {
         spec_id=260,
         role="dps",
         groups=_groups(
-            ROGUE_DEFENSIVES,
+            "Rogue",
+            "Outlaw",
+            ROGUE_ABILITIES,
             [
                 Spell(13750, "Adrenaline Rush", "AR", "spell_shadow_shadowworddominate", on_by_default=True),
                 Spell(381989, "Keep It Rolling", "KIR", "ability_rogue_keepitrolling", on_by_default=True),
@@ -251,7 +267,9 @@ SPECS: dict[str, Spec] = {
         spec_id=251,
         role="dps",
         groups=_groups(
-            DEATH_KNIGHT_DEFENSIVES,
+            "Death Knight",
+            "Frost",
+            DEATH_KNIGHT_ABILITIES,
             [
                 Spell(51271, "Pillar of Frost", "PoF", "ability_deathknight_pillaroffrost", on_by_default=True),
                 Spell(1249658, "Breath of Sindragosa", "BoS", "spell_deathknight_breathofsindragosa", on_by_default=True),
@@ -269,7 +287,9 @@ SPECS: dict[str, Spec] = {
         spec_id=252,
         role="dps",
         groups=_groups(
-            DEATH_KNIGHT_DEFENSIVES,
+            "Death Knight",
+            "Unholy",
+            DEATH_KNIGHT_ABILITIES,
             [
                 Spell(42650, "Army of the Dead", "AotD", "spell_deathknight_armyofthedead", on_by_default=True),
                 Spell(1233448, "Dark Transformation", "DT", "achievement_boss_festergutrotface", on_by_default=True),
@@ -286,7 +306,9 @@ SPECS: dict[str, Spec] = {
         spec_id=263,
         role="dps",
         groups=_groups(
-            SHAMAN_DEFENSIVES,
+            "Shaman",
+            "Enhancement",
+            SHAMAN_ABILITIES,
             [
                 # Warcraft Logs reports Ascendance's icon as a bare number rather than
                 # a slug, so it is left blank and the short badge is drawn instead.
@@ -303,7 +325,9 @@ SPECS: dict[str, Spec] = {
         spec_id=262,
         role="dps",
         groups=_groups(
-            SHAMAN_DEFENSIVES,
+            "Shaman",
+            "Elemental",
+            SHAMAN_ABILITIES,
             [
                 Spell(114050, "Ascendance", "Asc", "", on_by_default=True),
                 Spell(191634, "Stormkeeper", "SK", "ability_thunderking_lightningwhip", on_by_default=True),

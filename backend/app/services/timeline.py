@@ -46,6 +46,11 @@ FETCH_CONCURRENCY = 4
 # What Warcraft Logs calls a player who has opted out of rankings.
 ANONYMOUS = "Anonymous"
 
+# How many parses may be tried, as a multiple of top_n, before giving up on filling
+# the board. Guards against walking an entire ranking list on a boss where most
+# reports happen to be private.
+MAX_ATTEMPT_MULTIPLIER = 3
+
 # Gear array positions of the two trinkets. Fixed by the game's slot order.
 TRINKET_SLOTS = (12, 13)
 
@@ -84,41 +89,71 @@ async def build(encounter_id: int, difficulty: int, spec_key: str) -> dict:
     warnings: list[str] = []
 
     rankings, encounter_name = await _rankings(encounter_id, difficulty, spec)
-    rankings = rankings[: settings.top_n]
 
-    if not rankings:
+    # Anonymous parses are dropped before anything is fetched, not after. Warcraft
+    # Logs hides the name when a player opts out of rankings, and every cast lookup
+    # filters on source.name, so there is nothing to look them up by. Recognising
+    # that from the ranking costs no query at all.
+    candidates = [r for r in rankings if (r.get("name") or "") != ANONYMOUS]
+
+    if not candidates:
         warnings.append(
             f"Warcraft Logs has no ranked {spec.label} parses for this boss and "
             "difficulty yet."
         )
 
     catalog = spell_index(spec_key)
-
     semaphore = asyncio.Semaphore(FETCH_CONCURRENCY)
-    results = await asyncio.gather(
-        *(
-            _player(rank, entry, catalog, spec_key, semaphore)
-            for rank, entry in enumerate(rankings, start=1)
-        ),
-        return_exceptions=True,
-    )
 
     kept: list[dict] = []
-    # group key -> toggle id -> the toggle entry, merged across all ten players.
+    # group key -> toggle id -> the toggle entry, merged across the board.
     discovered: dict[str, dict[int, dict]] = {TRINKET_GROUP: {}, POTION_GROUP: {}}
-    for entry, result in zip(rankings, results):
-        if isinstance(result, Exception):
-            # One unreadable log should cost that row, not the whole page. Private and
-            # deleted reports are the usual cause and they are entirely normal.
-            name = entry.get("name", "?")
-            log.warning("dropping %s: %s", name, result)
-            warnings.append(f"Could not read {name}'s log: {result}")
-            continue
-        player, found = result
-        kept.append(player)
-        for group_key, entries in found.items():
-            for toggle, spell in entries.items():
-                discovered[group_key].setdefault(toggle, spell)
+
+    # Fill to top_n readable parses rather than taking top_n and losing some. A
+    # private or deleted report cannot be known about without asking, so the shortfall
+    # is refilled from further down the rankings until the board is full or the
+    # candidates run out.
+    #
+    # Fetched in waves of exactly the shortfall, rather than over-fetching a fixed
+    # margin up front: most boards have no unreadable logs at all, and paying for
+    # spare parses on every board of every spec would be a large standing cost for a
+    # rare problem.
+    attempted = 0
+    index = 0
+    while len(kept) < settings.top_n and index < len(candidates):
+        if attempted >= settings.top_n * MAX_ATTEMPT_MULTIPLIER:
+            # A boss where most reports are private is possible. Stop rather than
+            # walking the whole ranking list looking for readable ones.
+            break
+
+        shortfall = settings.top_n - len(kept)
+        wave = candidates[index : index + shortfall]
+        index += len(wave)
+        attempted += len(wave)
+
+        results = await asyncio.gather(
+            *(_player(entry, catalog, spec_key, semaphore) for entry in wave),
+            return_exceptions=True,
+        )
+
+        for entry, result in zip(wave, results):
+            if isinstance(result, Exception):
+                # Private and deleted reports are entirely normal. This is a fact
+                # about Warcraft Logs, not a fault of ours, so it goes to the log and
+                # the row is replaced rather than being shown to a visitor as an
+                # error.
+                log.info("skipping %s: %s", entry.get("name", "?"), result)
+                continue
+            player, found = result
+            kept.append(player)
+            for group_key, entries in found.items():
+                for toggle, spell in entries.items():
+                    discovered[group_key].setdefault(toggle, spell)
+
+    # Ranks are positions on this board, assigned after the unreadable parses have
+    # been skipped, so the rows read 1..N with no gaps.
+    for position, player in enumerate(kept, start=1):
+        player["rank"] = position
 
     # The ruler has to span the longest pull, otherwise the slowest kill runs off it.
     max_duration = max((p["duration"] for p in kept), default=0.0)
@@ -231,7 +266,6 @@ def _equipped_trinkets(entry: dict) -> list[dict]:
 
 
 async def _player(
-    rank: int,
     entry: dict,
     catalog: dict,
     spec_key: str,
@@ -243,13 +277,6 @@ async def _player(
     name = entry.get("name") or "Unknown"
     if not code or fight_id is None:
         raise ValueError("ranking carries no report reference")
-    if name == ANONYMOUS:
-        # Warcraft Logs hides the name when a player opts out of rankings, and every
-        # cast lookup here filters on source.name. Without a name there is nothing to
-        # filter on, so the row would render empty and look like a player who pressed
-        # nothing. Drop it and say why instead. About 3% of ranked parses.
-        raise ValueError("the player is anonymous on Warcraft Logs, so their casts "
-                         "cannot be looked up")
 
     equipped = _equipped_trinkets(entry)
 
@@ -260,7 +287,8 @@ async def _player(
     guild = entry.get("guild") or {}
 
     player = {
-        "rank": rank,
+        # Overwritten by build() once the board is filled; see the note there.
+        "rank": 0,
         "name": name,
         "server": server.get("name", ""),
         "region": (server.get("region") or "").upper(),

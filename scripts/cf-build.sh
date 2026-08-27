@@ -12,8 +12,11 @@ set -euo pipefail
 echo "--- fetching the snapshot from the data branch ---"
 if git fetch --depth 1 origin data 2>/dev/null; then
   rm -rf frontend/public/data
-  git checkout FETCH_HEAD -- data
   mkdir -p frontend/public
+  # git archive rather than git checkout, so the index is never touched. Harmless
+  # here since nothing commits, but the same line in the refresh workflow put a whole
+  # snapshot onto main, and having one form in both places keeps that from returning.
+  git archive FETCH_HEAD data | tar -x
   mv data frontend/public/data
   echo "snapshot: $(find frontend/public/data -name '*.json' | wc -l) files"
 else

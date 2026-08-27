@@ -29,3 +29,7 @@ frontend/public/data/
 
 # Refresh logs from the scheduled snapshot. Local noise.
 _logs/
+
+# The refresh workflow briefly extracts the published snapshot here before moving
+# it into frontend/public. It must never be committed to main.
+/data/

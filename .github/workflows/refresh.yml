@@ -73,9 +73,13 @@ jobs:
         # than starting over. Without --force the snapshot skips these entirely.
         run: |
           if git fetch --depth 1 origin data 2>/dev/null; then
-            git checkout FETCH_HEAD -- data
             mkdir -p frontend/public
             rm -rf frontend/public/data
+            # git archive, not git checkout. `git checkout FETCH_HEAD -- data` writes
+            # the files AND stages them, and moving them afterwards does not unstage
+            # anything, so the supposedly empty trigger commit at the end carried the
+            # entire snapshot onto main. git archive never touches the index.
+            git archive FETCH_HEAD data | tar -x
             mv data frontend/public/data
             echo "resuming from $(find frontend/public/data -name '*.json' | wc -l) files"
           else
@@ -115,6 +119,12 @@ jobs:
         # changes nothing that it watches, so without this the site would keep
         # serving the previous snapshot.
         run: |
+          # --allow-empty permits an empty commit, it does not force one: anything
+          # left staged would be committed. Clear the index first so this can only
+          # ever be the marker it is meant to be.
+          git reset --quiet
+          git status --porcelain
           git pull --ff-only
           git commit --allow-empty -m "Refresh snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git show --stat --oneline HEAD | tail -1
           git push origin HEAD:main

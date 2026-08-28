@@ -107,15 +107,32 @@ export default function Timeline({ data, groups, enabled, onPlayer, tips }: Prop
                 {(player.amount / 1000).toFixed(1)}k
               </span>
               <span className="worn">
-                {player.trinkets.map((t) => (
-                  <SpellIcon
-                    key={t.id}
-                    icon={t.icon}
-                    short={t.name.slice(0, 2)}
-                    alt={t.name}
-                    title={t.name}
-                  />
-                ))}
+                {player.trinkets.map((t) => {
+                  // Trinket tooltips are keyed by the negative item ID, the same
+                  // toggle the board groups them under.
+                  const text = tips[String(-t.id)];
+                  const level = [t.itemLevel || null, t.track || null]
+                    .filter(Boolean)
+                    .join(" ");
+                  return (
+                    <Tooltip
+                      key={t.id}
+                      content={{
+                        name: level ? `${t.name} (${level})` : t.name,
+                        // Falls back to the level alone, so the card still opens
+                        // and says something when there is no item description.
+                        description: text?.description || level || undefined,
+                      }}
+                    >
+                      <SpellIcon
+                        icon={t.icon}
+                        short={t.name.slice(0, 2)}
+                        alt={t.name}
+                        title={level ? `${t.name} (${level})` : t.name}
+                      />
+                    </Tooltip>
+                  );
+                })}
                 {player.heroTree && (
                   // Round, so it reads as a different kind of thing from the
                   // square trinkets sitting next to it. Ours to serve, unlike the

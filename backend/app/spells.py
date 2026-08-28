@@ -767,6 +767,44 @@ SPECS: dict[str, Spec] = {
 }
 
 
+# --- gear upgrade tracks -----------------------------------------------------------
+#
+# Warcraft Logs reports an item's level but not which upgrade track it came from, and
+# Blizzard's item endpoint describes the base item rather than the specific upgraded
+# copy. The bonus IDs on a ranking do encode the track, in blocks of eight consecutive
+# IDs, one per rank: 12843, 12844, 12845 and 12846 map to item levels 311, 315, 318
+# and 321. What they do not carry is which block is Veteran and which is Myth, and
+# labelling that wrongly would mislabel every trinket on the site without erroring.
+#
+# So the bands are declared here, from the game, and the season they belong to is
+# named so a stale table is obvious. Leave the list empty and only the item level is
+# shown, which is always correct.
+#
+# TODO(owner): fill in the current season's bands. Item levels seen in ranked parses
+# so far: 285, 289, 292, 295, 298, 302, 305, 308, 311, 315, 318, 321, 328, 331, 334.
+
+ITEM_TRACK_SEASON = ""
+
+ITEM_TRACKS: list[tuple[int, int, str]] = [
+    # (lowest item level, highest item level, track name), for example:
+    # (285, 298, "Veteran"),
+    # (302, 311, "Champion"),
+    # (315, 321, "Hero"),
+    # (324, 334, "Myth"),
+]
+
+
+def item_track(item_level: int) -> str:
+    """The upgrade track an item level falls in, or empty when unknown.
+
+    Empty rather than a guess: a wrong track reads as fact and would be believed.
+    """
+    for low, high, name in ITEM_TRACKS:
+        if low <= item_level <= high:
+            return name
+    return ""
+
+
 def hero_slug(name: str) -> str:
     """Filename key for a hero tree's art, matching tools/assets.py."""
     out = "".join(c.lower() if c.isalnum() else "-" for c in name)

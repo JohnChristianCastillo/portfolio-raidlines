@@ -89,6 +89,10 @@ export interface Trinket {
   id: number;
   name: string;
   icon: string;
+  /** The level of the copy this player actually wore. */
+  itemLevel: number;
+  /** Upgrade track, e.g. Hero. Empty when the season's bands are not configured. */
+  track: string;
 }
 
 export interface Player {

@@ -33,7 +33,14 @@ import asyncio
 import logging
 
 from ..config import settings
-from ..spells import groups_for, hero_slug, hero_tree_for, spec_for, spell_index
+from ..spells import (
+    groups_for,
+    hero_slug,
+    hero_tree_for,
+    item_track,
+    spec_for,
+    spell_index,
+)
 from ..wcl import client, queries
 from . import herotalents
 from .catalog import DIFFICULTY_BY_ID
@@ -255,11 +262,20 @@ def _equipped_trinkets(entry: dict) -> list[dict]:
         if slot < len(gear):
             item = gear[slot] or {}
             if item.get("id"):
+                # itemLevel arrives as a string, and occasionally not at all.
+                try:
+                    level = int(item.get("itemLevel") or 0)
+                except (TypeError, ValueError):
+                    level = 0
                 out.append(
                     {
                         "id": item["id"],
                         "name": item.get("name", ""),
                         "icon": item.get("icon", ""),
+                        "itemLevel": level,
+                        # Empty until the season's bands are configured; see
+                        # ITEM_TRACKS in spells.py.
+                        "track": item_track(level) if level else "",
                     }
                 )
     return out

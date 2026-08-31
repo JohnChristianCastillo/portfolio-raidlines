@@ -214,6 +214,19 @@ def _groups(spec_key: str, discovered: dict[str, dict[int, dict]]) -> list[dict]
     return out
 
 
+async def references(encounter_id: int, difficulty: int, spec_key: str) -> list[dict]:
+    """Report and fight references for the top parses, for the boss timeline.
+
+    Any spec will do: the boss behaves the same whoever is looking at it. This just
+    needs a handful of real pulls of the right encounter and difficulty.
+    """
+    spec = spec_for(spec_key)
+    if spec is None:
+        return []
+    rankings, _ = await _rankings(encounter_id, difficulty, spec)
+    return [r["report"] for r in rankings if r.get("report")]
+
+
 async def _rankings(
     encounter_id: int, difficulty: int, spec
 ) -> tuple[list[dict], str]:

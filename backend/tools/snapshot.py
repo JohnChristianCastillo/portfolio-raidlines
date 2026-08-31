@@ -25,6 +25,10 @@ Self-contained. Talents are baked into each board rather than fetched on demand,
 because on a static site there is no demand to fetch on. That is the one place this
 costs materially more than serving live: one extra query per player.
 
+Boss timelines are written once per encounter and difficulty to <out>/bosses/, not
+once per board. A boss behaves the same whoever is looking at it, so a tier is
+eighteen of them rather than one for each of the hundreds of boards.
+
 Tooltip text is written once to <out>/spells.json rather than repeated in every
 board. The same forty abilities appear on every board of a spec, and inlining their
 descriptions would have cost more than the boards themselves.
@@ -44,7 +48,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from app.blizzard import BlizzardError, Client  # noqa: E402
 from app.config import settings  # noqa: E402
-from app.services import catalog, descriptions, timeline  # noqa: E402
+from app.services import bosses, catalog, descriptions, timeline  # noqa: E402
 from app.spells import SPECS  # noqa: E402
 from app.wcl import client  # noqa: E402
 
@@ -172,6 +176,8 @@ async def run(args) -> None:
             f"{target.stat().st_size / 1024:.0f} KB, {remaining:.0f} points left"
         )
 
+    await write_boss_timelines(out, zone, args.difficulties, spec_keys[0])
+
     write_descriptions(out)
 
     # The manifest describes what is on disk, not what this run asked for. Runs are
@@ -233,6 +239,37 @@ async def run(args) -> None:
     )
     print(f"{total / 1024 / 1024:.1f} MB under {out}")
     print(f"manifest: {out / 'manifest.json'}")
+
+
+async def write_boss_timelines(
+    out: Path, zone: dict, difficulties: list[int], spec_key: str
+) -> None:
+    """One boss timeline per encounter and difficulty, shared by every spec.
+
+    The spec argument only picks which rankings to pull sample pulls from; the boss
+    does the same thing regardless of who is watching.
+    """
+    print("\nboss timelines")
+    for encounter in zone["encounters"]:
+        for difficulty in difficulties:
+            target = out / "bosses" / f"{encounter['id']}-{difficulty}.json"
+            label = f"  {encounter['name'][:26]:<26} d{difficulty}"
+            try:
+                refs = await timeline.references(encounter["id"], difficulty, spec_key)
+                data = await bosses.build(encounter["id"], difficulty, refs)
+            except (client.WclError, ValueError) as exc:
+                print(f"{label}: FAILED {exc}")
+                continue
+
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(
+                json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+                encoding="utf-8",
+            )
+            print(
+                f"{label}: {len(data['abilities'])} abilities, "
+                f"{len(data['casts'])} casts, from {data['samples']} pulls"
+            )
 
 
 def write_descriptions(out: Path) -> None:

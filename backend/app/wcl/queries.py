@@ -7,6 +7,7 @@ at a glance:
   RANKINGS   the top parses for one boss + difficulty + spec, with gear
   FIGHT      one player's casts within one logged pull
   TALENTS    that player's talent loadout, as an in-game import string
+  ENEMY      what the boss and its adds cast during one pull
 
 FIGHT deliberately does not filter by ability. Measured against the live API, a
 filtered and an unfiltered cast query cost the same 2 points, so narrowing it buys
@@ -117,5 +118,29 @@ query Talents($code: String!, $fightId: Int!, $actorId: Int!) {
 RATE_LIMIT = """
 query RateLimit {
   rateLimitData { limitPerHour pointsSpentThisHour pointsResetIn }
+}
+"""
+
+
+# Everything hostile that cast during the fight, plus the actor list needed to tell
+# the boss from its adds. One query per pull; the result is shared by every spec,
+# since a boss does the same thing whoever is looking at it.
+ENEMY_CASTS = """
+query EnemyCasts($code: String!, $fightId: Int!) {
+  reportData {
+    report(code: $code) {
+      masterData {
+        actors { id name type subType }
+        abilities { gameID name icon }
+      }
+      fights(fightIDs: [$fightId]) { id name startTime endTime }
+      events(
+        fightIDs: [$fightId]
+        dataType: Casts
+        hostilityType: Enemies
+        limit: 3000
+      ) { data }
+    }
+  }
 }
 """

@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  fetchBoss,
   fetchDescriptions,
   fetchMeta,
   fetchTimelines,
@@ -14,6 +15,7 @@ import {
   type Player,
   type Timelines,
   type Zone,
+  type BossTimeline,
 } from "./api";
 import Controls from "./components/Controls";
 import SpellToggles from "./components/SpellToggles";
@@ -48,6 +50,7 @@ export default function App() {
   const [toggles, setToggles] = useState<Record<string, number[]>>(saved.toggles);
 
   const [timelines, setTimelines] = useState<Timelines | null>(null);
+  const [bossLine, setBossLine] = useState<BossTimeline | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -86,7 +89,21 @@ export default function App() {
 
   // Trinkets are whatever this board's players brought, so the real group list
   // arrives with the board. Until then the catalog's own groups stand in.
-  const groups = timelines?.groups ?? spec?.groups ?? [];
+  // The boss abilities become a fifth toggle group, appended to the board's own.
+  // They come from a different file, so they are joined here rather than upstream.
+  const groups = useMemo(() => {
+    const base = timelines?.groups ?? spec?.groups ?? [];
+    if (!bossLine?.abilities.length) return base;
+    return [
+      ...base,
+      {
+        key: "boss",
+        label: bossLine.boss || "Boss",
+        color: "#e06c5a",
+        spells: bossLine.abilities,
+      },
+    ];
+  }, [timelines, spec, bossLine]);
 
   // Derived, not seeded by an effect.
   //
@@ -103,16 +120,17 @@ export default function App() {
     // board in state until the new one lands, and the old spec's abilities are not
     // this spec's defaults.
     if (timelines?.spec.key === specKey) {
-      for (const group of timelines.groups) {
+      for (const group of groups) {
         for (const spell of group.spells) {
           // The whole specialisation group starts on: it is what the board is for.
-          // Elsewhere only what the catalog marks.
+          // Elsewhere only what the catalog marks, which for the boss group means
+          // its own abilities but not its adds'.
           if (group.key === "spec" || spell.onByDefault) on.add(spell.id);
         }
       }
     }
     return on;
-  }, [toggles, specKey, timelines]);
+  }, [toggles, specKey, timelines, groups]);
 
   // Bosses differ per tier, so a tier change invalidates the chosen boss. Default to
   // the first one rather than nothing: the picker should open on a board, not on an
@@ -145,6 +163,10 @@ export default function App() {
     let cancelled = false;
     setLoading(true);
     setError("");
+    // The boss row is per encounter and difficulty, so it is fetched alongside the
+    // board rather than being repeated inside every spec's copy.
+    fetchBoss(encounterId!, difficultyId!).then((b) => !cancelled && setBossLine(b));
+
     fetchTimelines(encounterId!, difficultyId!, specKey)
       .then((data) => {
         // A slow reply must not overwrite a boss the user has since moved off.
@@ -256,6 +278,7 @@ export default function App() {
         {ready && !loading && !error && timelines && (
           <Timeline
             data={timelines}
+            boss={bossLine}
             groups={groups}
             enabled={enabled}
             onPlayer={setOpenPlayer}

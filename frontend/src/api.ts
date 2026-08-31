@@ -118,6 +118,22 @@ export interface Player {
   casts: Cast[];
 }
 
+/**
+ * What the boss and its adds did, medianed across several top kills.
+ *
+ * One per encounter and difficulty rather than one per board: a boss behaves the
+ * same whoever is looking at it, so this is fetched separately and shared.
+ */
+export interface BossTimeline {
+  encounter: Encounter;
+  boss: string;
+  /** How many pulls the times were medianed across. */
+  samples: number;
+  duration: number;
+  abilities: Spell[];
+  casts: Cast[];
+}
+
 export interface Timelines {
   encounter: Encounter;
   difficulty: Difficulty;
@@ -234,6 +250,24 @@ export async function fetchDescriptions(): Promise<Record<string, TooltipText>> 
 export interface TooltipText {
   name: string;
   description: string;
+}
+
+export async function fetchBoss(
+  encounter: number,
+  difficulty: number,
+): Promise<BossTimeline | null> {
+  const snapshot = await loadManifest();
+  try {
+    if (snapshot) {
+      return await json<BossTimeline>(`${DATA}/bosses/${encounter}-${difficulty}.json`);
+    }
+    return await json<BossTimeline>(
+      `/api/boss?encounter=${encounter}&difficulty=${difficulty}`,
+    );
+  } catch {
+    // A board without its boss row is still a board.
+    return null;
+  }
 }
 
 export async function fetchTalents(

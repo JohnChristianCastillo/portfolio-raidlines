@@ -376,6 +376,51 @@ code {
   background: #26243a;
 }
 
+/* The boss row sits above the players and reads as a header rather than a peer. */
+.timeline-row--boss {
+  background: #17141c;
+  border-bottom: 1px solid var(--line-bright);
+}
+
+.cell-name--boss {
+  cursor: default;
+  gap: 6px;
+}
+
+.boss-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f0d264;
+  font-weight: 600;
+}
+
+/* The timings are a median across pulls, so they cannot line up exactly with the
+   individual pulls below. Marked rather than left for someone to discover. */
+.caveat {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #8a7a3a;
+  border-radius: 50%;
+  color: #d8c583;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+  cursor: help;
+}
+
+.cast--boss {
+  background: #3a2320;
+  border-color: #e06c5a;
+}
+
+.cast--boss:hover {
+  background: #55322c;
+}
+
 .cell-name--ruler {
   cursor: default;
   color: var(--text-dim);

@@ -4,7 +4,7 @@
  * kill stops early and the remainder is dimmed.
  */
 
-import type { Player, SpellGroup, Timelines, TooltipText } from "../api";
+import type { BossTimeline, Player, SpellGroup, Timelines, TooltipText } from "../api";
 import { classColor } from "../classColors";
 import { formatTime } from "../mrt";
 import SpellIcon from "./SpellIcon";
@@ -12,6 +12,8 @@ import Tooltip from "./Tooltip";
 
 interface Props {
   data: Timelines;
+  /** The boss and add abilities, or null when none were published. */
+  boss: BossTimeline | null;
   groups: SpellGroup[];
   enabled: ReadonlySet<number>;
   onPlayer: (player: Player) => void;
@@ -26,7 +28,7 @@ function tickInterval(duration: number): number {
   return 600;
 }
 
-export default function Timeline({ data, groups, enabled, onPlayer, tips }: Props) {
+export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }: Props) {
   const { maxDuration, players, warnings } = data;
 
   // Colour by catalog group, matching the toggles.
@@ -52,12 +54,17 @@ export default function Timeline({ data, groups, enabled, onPlayer, tips }: Prop
     );
   }
 
-  const span = maxDuration > 0 ? maxDuration : 1;
+  // The scale has to cover the boss row as well, or a boss that outlasts the
+  // fastest kills runs off the end of it.
+  const longest = Math.max(maxDuration, boss?.duration ?? 0);
+  const span = longest > 0 ? longest : 1;
   const step = tickInterval(span);
   const ticks: number[] = [];
   for (let t = 0; t <= span; t += step) ticks.push(t);
 
   const pct = (seconds: number) => `${(seconds / span) * 100}%`;
+
+  const bossCasts = (boss?.casts ?? []).filter((c) => enabled.has(c.toggle));
 
   return (
     <div className="timeline">
@@ -85,6 +92,64 @@ export default function Timeline({ data, groups, enabled, onPlayer, tips }: Prop
           </div>
         </div>
       </div>
+
+      {boss && bossCasts.length > 0 && (
+        <div className="timeline-row timeline-row--boss">
+          <div className="cell-name cell-name--boss">
+            <span className="boss-name">{boss.boss || "Boss"}</span>
+            <Tooltip
+              content={{
+                name: "Representative timings",
+                description:
+                  `Medianed across ${boss.samples} top kills, so this is what the ` +
+                  "fight usually looks like rather than any one pull. Each player " +
+                  "row below is a different pull, so the two will not line up " +
+                  "exactly, and they drift further apart later in the fight.",
+              }}
+            >
+              <span className="caveat" aria-label="About these timings">
+                ?
+              </span>
+            </Tooltip>
+          </div>
+          <div className="cell-track">
+            <div className="track-inner">
+              {ticks.map((t) => (
+                <div className="tick tick--faint" key={t} style={{ left: pct(t) }} />
+              ))}
+              {bossCasts.map((cast, index) => {
+                const text = tips[String(cast.toggle)];
+                return (
+                  <Tooltip
+                    key={`${cast.spellId}-${cast.t}-${index}`}
+                    content={
+                      text
+                        ? { ...text, name: `${text.name} at ${formatTime(cast.t)}` }
+                        : { name: `${cast.name} at ${formatTime(cast.t)}` }
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="cast cast--boss"
+                      style={{ left: pct(cast.t) }}
+                      title={`${cast.name} at ${formatTime(cast.t)}`}
+                    >
+                      <SpellIcon
+                        icon={cast.icon}
+                        short={shortOf.get(cast.toggle) ?? "?"}
+                        alt={cast.name}
+                      />
+                      <span className="cast-time">
+                        {formatTime(cast.t).slice(0, 5)}
+                      </span>
+                    </button>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {players.map((player) => {
         const casts = player.casts.filter((c) => enabled.has(c.toggle));

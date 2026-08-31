@@ -4,6 +4,7 @@
   GET /api/zones       raid tiers and their bosses, newest first
   GET /api/timelines   the actual product: top N parses and their cooldown usage
   GET /api/talents     one player's talent loadout, as an in-game import string
+  GET /api/boss        the boss and add ability timeline for an encounter
   GET /api/budget      remaining Warcraft Logs point budget (diagnostics)
 
 Nothing here is owner-gated. Raidlines reads public ranking data and holds no user
@@ -14,7 +15,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from ..config import settings
 from ..spells import SPECS, groups_for
-from ..services import catalog, timeline
+from ..services import bosses, catalog, timeline
 from ..wcl import client
 
 router = APIRouter(prefix="/api")
@@ -99,6 +100,20 @@ async def talents(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/boss")
+async def boss(
+    encounter: int = Query(..., description="Warcraft Logs encounter (boss) ID"),
+    difficulty: int = Query(..., description="3 Normal, 4 Heroic, 5 Mythic"),
+    spec: str = Query("rogue-subtlety", description="only used to find sample pulls"),
+) -> dict:
+    """One timeline per encounter and difficulty, shared by every spec."""
+    try:
+        refs = await timeline.references(encounter, difficulty, spec)
+        return await bosses.build(encounter, difficulty, refs)
+    except client.WclError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/budget")

@@ -16,8 +16,14 @@
  * pointer-events: none, so the card can never sit between the cursor and the thing
  * it describes, whatever the geometry.
  *
- * Renders nothing when there is no text. Potions have no description available, so
- * their markers keep the plain browser tooltip rather than opening an empty card.
+ * Opens for anything with a name, even when no description is available. Falling
+ * back to the browser's own tooltip for those looked like a bug: the card is instant
+ * and the native one waits about a second, so identical-looking icons behaved
+ * differently depending on whether Blizzard happens to publish text for them.
+ *
+ * Plenty do not. Potions are item effects with no spell entry, and boss abilities
+ * are not in the spell endpoint at all, nor in the Adventure Guide sections that
+ * name them. Those show the name and whatever else we know.
  */
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -25,6 +31,8 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 export interface TooltipContent {
   name: string;
   description?: string;
+  /** A line under the name, e.g. which add casts a boss ability. */
+  detail?: string;
 }
 
 interface Props {
@@ -59,7 +67,7 @@ export default function Tooltip({ content, children }: Props) {
     setPlaced({ top, left });
   }, [cursor]);
 
-  if (!content?.description) return <>{children}</>;
+  if (!content?.name) return <>{children}</>;
 
   return (
     <span
@@ -83,7 +91,10 @@ export default function Tooltip({ content, children }: Props) {
           }}
         >
           <div className="tip-name">{content.name}</div>
-          <div className="tip-body">{content.description}</div>
+          {content.detail && <div className="tip-detail">{content.detail}</div>}
+          {content.description && (
+            <div className="tip-body">{content.description}</div>
+          )}
         </div>
       )}
     </span>

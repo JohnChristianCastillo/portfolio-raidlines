@@ -66,6 +66,16 @@ export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }
 
   const bossCasts = (boss?.casts ?? []).filter((c) => enabled.has(c.toggle));
 
+  // Which add casts a given ability. Worth saying on the boss row, where half the
+  // abilities belong to something other than the boss, and worth saying twice over
+  // because Blizzard publishes no description text for encounter abilities at all.
+  const casterOf = new Map<number, string>();
+  for (const ability of boss?.abilities ?? []) {
+    if (ability.source && ability.source !== boss?.boss) {
+      casterOf.set(ability.id, ability.source);
+    }
+  }
+
   return (
     <div className="timeline">
       {warnings.length > 0 && (
@@ -119,20 +129,20 @@ export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }
               ))}
               {bossCasts.map((cast, index) => {
                 const text = tips[String(cast.toggle)];
+                const caster = casterOf.get(cast.toggle);
                 return (
                   <Tooltip
                     key={`${cast.spellId}-${cast.t}-${index}`}
-                    content={
-                      text
-                        ? { ...text, name: `${text.name} at ${formatTime(cast.t)}` }
-                        : { name: `${cast.name} at ${formatTime(cast.t)}` }
-                    }
+                    content={{
+                      name: `${text?.name ?? cast.name} at ${formatTime(cast.t)}`,
+                      detail: caster && `Cast by ${caster}`,
+                      description: text?.description,
+                    }}
                   >
                     <button
                       type="button"
                       className="cast cast--boss"
                       style={{ left: pct(cast.t) }}
-                      title={`${cast.name} at ${formatTime(cast.t)}`}
                     >
                       <SpellIcon
                         icon={cast.icon}
@@ -159,11 +169,11 @@ export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }
               type="button"
               className="cell-name"
               onClick={() => onPlayer(player)}
-              title={`${player.name}${player.server ? `-${player.server}` : ""} - click for the MRT note`}
             >
               <span className="rank">#{player.rank}</span>
               <span
                 className="player-name"
+                title={`${player.name}${player.server ? `-${player.server}` : ""} - click for the MRT note`}
                 style={{ color: classColor(data.spec.classKey) }}
               >
                 {player.name}
@@ -193,7 +203,6 @@ export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }
                         icon={t.icon}
                         short={t.name.slice(0, 2)}
                         alt={t.name}
-                        title={level ? `${t.name} (${level})` : t.name}
                       />
                     </Tooltip>
                   );
@@ -202,15 +211,21 @@ export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }
                   // Round, so it reads as a different kind of thing from the
                   // square trinkets sitting next to it. Ours to serve, unlike the
                   // spell icons, so it needs no CDN fallback.
-                  <span className="hero">
-                    <img
-                      className="spell-icon"
-                      src={`${import.meta.env.BASE_URL}assets/${player.heroTree.asset}`}
-                      alt={player.heroTree.name}
-                      title={`${player.heroTree.name} hero talents`}
-                      loading="lazy"
-                    />
-                  </span>
+                  <Tooltip
+                    content={{
+                      name: player.heroTree.name,
+                      detail: "Hero talents",
+                    }}
+                  >
+                    <span className="hero">
+                      <img
+                        className="spell-icon"
+                        src={`${import.meta.env.BASE_URL}assets/${player.heroTree.asset}`}
+                        alt={player.heroTree.name}
+                        loading="lazy"
+                      />
+                    </span>
+                  </Tooltip>
                 )}
               </span>
             </button>
@@ -236,11 +251,10 @@ export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }
                     <Tooltip
                       // Rounding can collide, hence the index in the key.
                       key={`${cast.spellId}-${cast.t}-${index}`}
-                      content={
-                        text
-                          ? { ...text, name: `${text.name} at ${formatTime(cast.t)}` }
-                          : null
-                      }
+                      content={{
+                        name: `${text?.name ?? label} at ${formatTime(cast.t)}`,
+                        description: text?.description,
+                      }}
                     >
                       <button
                         type="button"
@@ -249,7 +263,6 @@ export default function Timeline({ data, boss, groups, enabled, onPlayer, tips }
                           left: pct(cast.t),
                           borderColor: colorOf.get(cast.toggle) ?? "#888",
                         }}
-                        title={`${label} at ${formatTime(cast.t)}`}
                         onClick={() => onPlayer(player)}
                       >
                         <SpellIcon

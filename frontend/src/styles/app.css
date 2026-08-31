@@ -601,6 +601,12 @@ code {
   margin-bottom: 4px;
 }
 
+.tip-detail {
+  color: #8f88a6;
+  font-size: 0.78rem;
+  margin-bottom: 4px;
+}
+
 .tip-body {
   color: #cfcbdd;
 }

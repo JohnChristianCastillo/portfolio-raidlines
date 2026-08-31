@@ -5,14 +5,28 @@ Game Data API says, in finished prose, which is what a hover tooltip needs.
 
 Coverage is not total, and the gap is structural rather than a bug to fix:
 
-  class abilities   /data/wow/spell/{id}   works
+  class abilities   /data/wow/spell/{id}   works, for most of them
   trinkets          /data/wow/item/{id}    works, and gives the "Use:" line
   potions           nothing                they are item effects whose item ID we
                                            never learn, and Blizzard's item search
                                            cannot find them by name
+  boss abilities    nothing                not in the spell endpoint at all
 
-So a potion tooltip is its name and icon with no body. That is honest and still
-useful; inventing text would not be.
+Around a sixth of player abilities have no spell entry either, old and new alike:
+Stampeding Roar and Alter Time as much as Void Metamorphosis. There is no second
+source to fall back on. Three were checked and each is a dead end:
+
+  /data/wow/search/spell     the index is empty; even an unfiltered query with no
+                             criteria returns zero documents
+  /data/wow/journal-encounter  names every boss ability and gives each a spell ID,
+                             but the sections carrying a spell have empty body_text,
+                             and those spell IDs 404 on the spell endpoint anyway
+  /data/wow/search/item      cannot find potions by name
+
+So some tooltips are a name and an icon with no body. That is honest and still
+useful; inventing text would not be. The UI opens the same card either way, so a
+missing description reads as "nothing more to say" rather than as a broken tooltip,
+and the boss row fills the space with the add that casts the ability.
 
 Everything here runs at snapshot time. The published site ships the result as one
 JSON file and calls Blizzard never.

@@ -22,6 +22,11 @@ export interface Spell {
   onByDefault: boolean;
 }
 
+/** A boss or add ability, which unlike a player's also records who casts it. */
+export interface BossAbility extends Spell {
+  source: string;
+}
+
 export interface SpellGroup {
   key: string;
   label: string;
@@ -130,7 +135,7 @@ export interface BossTimeline {
   /** How many pulls the times were medianed across. */
   samples: number;
   duration: number;
-  abilities: Spell[];
+  abilities: BossAbility[];
   casts: Cast[];
 }
 

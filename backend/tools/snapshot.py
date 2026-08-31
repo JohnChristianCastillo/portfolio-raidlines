@@ -277,6 +277,9 @@ def write_descriptions(out: Path) -> None:
 
     Driven by what the boards actually reference rather than by the catalog, so
     discovered trinkets and potions are included without being listed anywhere.
+
+    Boss and add abilities are deliberately not swept in. Blizzard publishes no text
+    for them anywhere: see the note in services/descriptions.
     """
     if not settings.blizzard_enabled:
         print("\nno Blizzard credentials, skipping tooltips")

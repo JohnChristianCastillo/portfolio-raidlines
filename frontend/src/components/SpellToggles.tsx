@@ -56,7 +56,6 @@ export default function SpellToggles({
                     <button
                       type="button"
                       aria-pressed={on}
-                      title={spell.name}
                       className={on ? "spell-toggle is-on" : "spell-toggle"}
                       style={{ "--accent": group.color } as React.CSSProperties}
                       onClick={() => onToggle(spell.id)}

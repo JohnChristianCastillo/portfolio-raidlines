@@ -18,6 +18,7 @@ import {
   type BossTimeline,
 } from "./api";
 import Controls from "./components/Controls";
+import Footer from "./components/Footer";
 import SpellToggles from "./components/SpellToggles";
 import Timeline from "./components/Timeline";
 import PlayerModal from "./components/PlayerModal";
@@ -296,6 +297,8 @@ export default function App() {
           onClose={() => setOpenPlayer(null)}
         />
       )}
+
+      <Footer />
     </div>
   );
 }

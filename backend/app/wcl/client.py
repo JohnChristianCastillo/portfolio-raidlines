@@ -17,6 +17,7 @@ Three things live here, in the order a request passes through them:
 Nothing here knows what a spell or a boss is. It moves GraphQL in and JSON out.
 """
 
+import asyncio
 import base64
 import hashlib
 import json
@@ -32,6 +33,13 @@ from ..config import settings
 log = logging.getLogger(__name__)
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
+
+# A request that got no answer, or one the gateway in front of the API gave up on, is
+# worth asking again: it says nothing about the query. Every other status is a real
+# answer and is reported as one. The waits grow so that a brief outage is ridden out
+# rather than retried into.
+RETRY_STATUSES = {502, 503, 504}
+RETRY_DELAYS = (5.0, 20.0, 60.0)
 
 
 class WclError(RuntimeError):
@@ -167,12 +175,36 @@ async def _post(
     *,
     retry_on_401: bool,
 ) -> dict:
-    token = await _tokens.get(http)
-    response = await http.post(
-        settings.wcl_api_url,
-        json={"query": query, "variables": variables},
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    for delay in (*RETRY_DELAYS, None):
+        try:
+            token = await _tokens.get(http)
+            response = await http.post(
+                settings.wcl_api_url,
+                json={"query": query, "variables": variables},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        except httpx.TransportError as exc:
+            # Raised as WclError once retries run out, so every caller that already
+            # survives a failed query survives this too. Left as httpx's own type, a
+            # single stalled read once killed a four-hour snapshot outright.
+            if delay is None:
+                raise WclError(
+                    f"Warcraft Logs did not answer ({type(exc).__name__})"
+                ) from exc
+            log.warning(
+                "Warcraft Logs %s, retrying in %.0fs", type(exc).__name__, delay
+            )
+            await asyncio.sleep(delay)
+            continue
+        if response.status_code in RETRY_STATUSES and delay is not None:
+            log.warning(
+                "Warcraft Logs returned %s, retrying in %.0fs",
+                response.status_code,
+                delay,
+            )
+            await asyncio.sleep(delay)
+            continue
+        break
 
     if response.status_code == 401 and retry_on_401:
         # Token rejected: it was revoked or expired early. One retry with a fresh one.

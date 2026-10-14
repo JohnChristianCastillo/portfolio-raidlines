@@ -1,9 +1,13 @@
 # Refresh the snapshot and publish it, daily.
 #
 # Runs on GitHub rather than a machine at home. Public repositories get unlimited
-# Actions minutes, which matters here because the job spends almost all its time
-# asleep: Warcraft Logs allows 3600 points an hour and a full pass costs roughly
-# 14,000, so about four hours of waiting for a few minutes of work.
+# Actions minutes, which matters here because the job can spend hours asleep:
+# Warcraft Logs allows 3600 points an hour. A warm pass, most fights already in the
+# response cache, takes minutes to an hour. A cold one, after a patch reshuffles the
+# rankings, needs roughly 28,000 points, about eight hours, which is more than one
+# job may run. The snapshot therefore stops itself in time to publish, and the
+# cache is saved even on failure, so the next day carries on rather than starting
+# over.
 #
 # The loop: snapshot, force-push the data branch, push an empty commit to main.
 # Cloudflare builds on a push to main and fetches the data branch itself, so that
@@ -39,7 +43,8 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    # A full pass is about four hours of mostly waiting. The ceiling is six.
+    # The ceiling is six hours. The snapshot stops starting boards well before
+    # this (SNAPSHOT_MINUTES below), so publishing always has time to run.
     timeout-minutes: 350
 
     steps:
@@ -61,11 +66,12 @@ jobs:
       - name: Restore the API response cache
         # A logged fight never changes, so a cached response is correct forever.
         # Without this every run re-fetches every fight and takes far longer for
-        # exactly the same output.
-        uses: actions/cache@v4
+        # exactly the same output. Restore and save are separate steps so the save
+        # can run on failure too: see the last step.
+        uses: actions/cache/restore@v4
         with:
           path: backend/data/cache
-          key: wcl-cache-${{ github.run_id }}
+          key: wcl-cache-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: wcl-cache-
 
       - name: Fetch the existing snapshot
@@ -97,15 +103,22 @@ jobs:
           RAIDLINES_WCL_CLIENT_SECRET: ${{ secrets.WCL_CLIENT_SECRET }}
           RAIDLINES_BLIZZARD_CLIENT_ID: ${{ secrets.BLIZZARD_CLIENT_ID }}
           RAIDLINES_BLIZZARD_CLIENT_SECRET: ${{ secrets.BLIZZARD_CLIENT_SECRET }}
+          # Minutes of boards before the snapshot stops and finishes up. Leaves about
+          # fifty of the job's 350 for setup, boss timelines, tooltips, publishing
+          # and saving the cache.
+          SNAPSHOT_MINUTES: "290"
         run: |
           ARGS=""
           if [ "${{ github.event.inputs.force }}" != "false" ]; then ARGS="$ARGS --force"; fi
+          # One deadline for the whole step, shared by every per-spec invocation.
+          END=$(( $(date +%s) + SNAPSHOT_MINUTES * 60 ))
+          left() { echo $(( (END - $(date +%s)) / 60 )); }
           if [ -n "${{ github.event.inputs.specs }}" ]; then
             for s in ${{ github.event.inputs.specs }}; do
-              python tools/snapshot.py --spec "$s" $ARGS
+              python tools/snapshot.py --spec "$s" --stop-after "$(left)" $ARGS
             done
           else
-            python tools/snapshot.py $ARGS
+            python tools/snapshot.py --stop-after "$(left)" $ARGS
           fi
 
       - name: Publish the data branch
@@ -128,3 +141,14 @@ jobs:
           git commit --allow-empty -m "Refresh snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git show --stat --oneline HEAD | tail -1
           git push origin HEAD:main
+
+      - name: Save the API response cache
+        # Runs even when an earlier step failed or the job was cancelled. Every
+        # response fetched is paid for in points. When a run that had fetched for
+        # four hours failed, the combined cache action threw all of it away, and
+        # the next run would have started cold and hit the same wall.
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: backend/data/cache
+          key: wcl-cache-${{ github.run_id }}-${{ github.run_attempt }}

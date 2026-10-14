@@ -21,6 +21,12 @@ Resumable. A board already on disk is skipped unless --force. A laptop that slee
 mid-run therefore costs nothing: start it again and it carries on. The response
 cache underneath means even a forced rebuild of an unchanged fight is free.
 
+Bounded. --stop-after ends the board loop cleanly before an outside limit (the
+Actions job timeout) kills the process. A cold pass, after a patch reshuffles the
+rankings or the response cache is lost, needs more points than one job can wait
+for. Stopping still writes the manifest and the shared files, so the run publishes
+what it finished, and the next one gets through those boards on the cache.
+
 Self-contained. Talents are baked into each board rather than fetched on demand,
 because on a static site there is no demand to fetch on. That is the one place this
 costs materially more than serving live: one extra query per player.
@@ -59,11 +65,18 @@ DEFAULT_OUT = Path(__file__).resolve().parent.parent.parent / "frontend" / "publ
 LOW_WATER = 250
 
 
+class OutOfTime(Exception):
+    """The --stop-after limit arrived, or waiting for the budget would pass it."""
+
+
 class Budget:
     """Keeps the run inside the hourly point allowance."""
 
-    def __init__(self, low_water: int = LOW_WATER) -> None:
+    def __init__(
+        self, low_water: int = LOW_WATER, deadline: float | None = None
+    ) -> None:
         self.low_water = low_water
+        self.deadline = deadline
         self.spent_at_start: float | None = None
 
     async def wait_if_low(self) -> dict:
@@ -76,6 +89,8 @@ class Budget:
 
         if remaining < self.low_water:
             resets_in = int(info.get("pointsResetIn") or 300) + 15
+            if self.deadline is not None and time.time() + resets_in > self.deadline:
+                raise OutOfTime
             print(
                 f"  budget down to {remaining:.0f} points, sleeping {resets_in}s "
                 "for the hourly reset"
@@ -138,9 +153,10 @@ async def run(args) -> None:
         f"= {len(jobs)} boards\n"
     )
 
-    budget = Budget()
-    written = skipped = failed = 0
     started = time.time()
+    deadline = None if args.stop_after is None else started + args.stop_after * 60
+    budget = Budget(deadline=deadline)
+    written = skipped = failed = 0
 
     for index, (encounter, difficulty, key) in enumerate(jobs, start=1):
         target = out / key / f"{encounter['id']}-{difficulty}.json"
@@ -150,12 +166,23 @@ async def run(args) -> None:
             skipped += 1
             continue
 
-        info = await budget.wait_if_low()
-        remaining = float(info.get("limitPerHour") or 3600) - float(
-            info.get("pointsSpentThisHour") or 0
-        )
         try:
+            if deadline is not None and time.time() >= deadline:
+                raise OutOfTime
+            # Inside the try: the budget check is a request like any other, and a
+            # failed one should cost this board, not the run.
+            info = await budget.wait_if_low()
+            remaining = float(info.get("limitPerHour") or 3600) - float(
+                info.get("pointsSpentThisHour") or 0
+            )
             data = await board(encounter, difficulty, key, not args.no_talents)
+        except OutOfTime:
+            # Boards not reached keep whatever the previous snapshot had for them.
+            print(
+                f"\nout of time with {len(jobs) - index + 1} boards not refreshed; "
+                "they keep their previous data until the next run"
+            )
+            break
         except (client.WclError, ValueError) as exc:
             print(f"{label}: FAILED {exc}")
             failed += 1
@@ -333,6 +360,12 @@ def main() -> None:
         help="difficulty IDs, default heroic and mythic",
     )
     parser.add_argument("--force", action="store_true", help="rewrite existing boards")
+    parser.add_argument(
+        "--stop-after",
+        type=float,
+        metavar="MINUTES",
+        help="stop starting boards after this long, then finish up as normal",
+    )
     parser.add_argument(
         "--no-talents", action="store_true", help="skip the per-player loadout strings"
     )
